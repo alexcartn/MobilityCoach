@@ -1,6 +1,6 @@
 import { h, icon } from '../ui.js';
 import { getMob } from '../data/mobs.js';
-import { renderPose } from '../diagram.js';
+import { mountFigure } from '../motion.js';
 import * as store from '../store.js';
 import { loadSettings, saveSettings } from '../settings.js';
 import { stepsFor, fmtSeconds, zoneRoutine, painRoutine, defaultSeconds } from '../routine.js';
@@ -87,6 +87,7 @@ export async function render(root, params = []) {
   const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-label': 'Avancement de la séance' }, barFill);
   const counter = h('p', { class: 'counter-line' });
   const figure = h('div', { class: 'session-fig' });
+  let fig = null; // le schéma de la fiche en cours : il s'anime tant que le minuteur tourne sur un temps de travail
   const cue = h('p', { class: 'cue' });
   const technique = h('div');
   const mainBtn = h('button', { type: 'button', class: 'btn primary big' }, 'Démarrer');
@@ -133,7 +134,8 @@ export async function render(root, params = []) {
     const bonus = m.perSide && ((weak[m.zone] === 'l' && st.side === 0) || (weak[m.zone] === 'r' && st.side === 1)) ? ' · +30 s, côté plus raide' : '';
     kicker.textContent = !started ? 'Prêt ?' : st.kind === 'prep' ? st.label : ((sideLabel + bonus) || 'En cours');
     title.textContent = m.name;
-    figure.replaceChildren(renderPose({ ...m.frames[0], facing: st.side === 1 ? -1 : 1, label: m.name }));
+    fig?.destroy();
+    fig = mountFigure(figure, m, { facing: st.side === 1 ? -1 : 1, label: m.name });
     cue.textContent = st.kind === 'prep'
       ? `${sideLabel ? sideLabel + ' : ' : ''}${m.cue}`
       : m.cue;
@@ -166,6 +168,7 @@ export async function render(root, params = []) {
   }
 
   function paintTime() {
+    fig?.setPlaying(started && running && steps[i].kind === 'work');
     const secs = Math.ceil(left / 1000);
     timer.textContent = mmss(secs);
     const before = steps.slice(0, i).reduce((n, s) => n + s.seconds * 1000, 0);
@@ -261,6 +264,7 @@ export async function render(root, params = []) {
     if (finished) return;
     finished = true;
     running = false;
+    fig?.destroy();
     clearInterval(tick);
     releaseWake();
     const items = Object.entries(worked)
@@ -320,6 +324,7 @@ export async function render(root, params = []) {
   }
 
   teardown = () => {
+    fig?.destroy();
     clearInterval(tick);
     releaseWake();
     document.removeEventListener('visibilitychange', onVisible);

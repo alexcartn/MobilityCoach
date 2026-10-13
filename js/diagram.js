@@ -2,12 +2,15 @@
 // -90 = haut, 180 = gauche, y vers le bas), plus des accessoires accrochés à ses articulations.
 // Rendu « atlas » : volumes au contour fin, côté éloigné grisé, zone travaillée hachurée en fauve.
 // La figure est posée automatiquement sur le sol : on ne règle que les angles.
+// Pour animer (js/motion.js), renderPose accepte en option : J (articulations déjà calculées), T (calage au sol
+// imposé), cam (cadre imposé), out (récupère calage et boîte) et noArrows. Un point absolu [x, y] dans un
+// accessoire est exprimé dans le repère « monde » de la pose.
 
 const NS = 'http://www.w3.org/2000/svg';
 const VIEW_W = 240;
 const VIEW_H = 140;
 
-const L = { torso: 36, head: 17, thigh: 30, shin: 28, foot: 11, upper: 20, fore: 18 };
+export const L = { torso: 36, head: 17, thigh: 30, shin: 28, foot: 11, upper: 20, fore: 18 };
 
 const f = (v) => Math.round(v * 10) / 10;
 const rad = (d) => (d * Math.PI) / 180;
@@ -39,7 +42,7 @@ function hull(c0, r0, c1, r1) {
 }
 
 // Articulations, hanche en (0,0). Le côté proche porte les noms simples, le côté éloigné le suffixe « 2 ».
-function skeleton(pose) {
+export function skeleton(pose) {
   const hip = [0, 0];
   const shoulder = add(hip, pose.torso, L.torso);
   const head = add(shoulder, pose.head ?? pose.torso, L.head);
@@ -125,7 +128,7 @@ function el(tag, attrs, parent) {
 }
 
 // Un point de référence : ['hip', dx, dy] (articulation + décalage) ou [x, y] absolu.
-function ref(spec, J, facing = 1) {
+export function ref(spec, J, facing = 1) {
   if (typeof spec[0] === 'number') return [spec[0], spec[1]];
   const p = J[spec[0]];
   if (!p) throw new Error('articulation inconnue : ' + spec[0]);
@@ -142,7 +145,17 @@ function arrowHead(parent, from, to) {
 
 let uid = 0;
 
-export function renderPose(pose) {
+// Cadre de la scène : ratio fixe, centré sur la boîte, jamais plus serré que 150 unités de large.
+export function frameFor(box, top = false) {
+  const ratio = VIEW_H / VIEW_W;
+  const cw = box.x1 - box.x0;
+  const ch = box.y1 - box.y0;
+  const vw = Math.max(cw + 28, (ch + 22) / ratio, 150);
+  const vh = vw * ratio;
+  return [(box.x0 + box.x1) / 2 - vw / 2, top ? (box.y0 + box.y1) / 2 - vh / 2 : box.y1 + 9 - vh, vw, vh];
+}
+
+export function renderPose(pose, opts = {}) {
   const id = `fig${++uid}`;
   const floor = pose.floor ?? 126;
   const top = pose.view === 'top';
@@ -150,7 +163,7 @@ export function renderPose(pose) {
   const props = pose.props ?? [];
   const roundR = (p) => p.r ?? (p.t === 'roller' ? 9 : 4.5);
 
-  let J = skeleton(pose);
+  let J = opts.J ?? skeleton(pose);
   // Miroir éventuel (la pose est écrite tournée vers la droite).
   if (facing === -1) J = Object.fromEntries(Object.entries(J).map(([k, v]) => [k, [-v[0], v[1]]]));
 
@@ -169,34 +182,31 @@ export function renderPose(pose) {
   for (const p of props) if (p.t === 'ball' || p.t === 'roller') growCircle(ref(p.at, J, facing), roundR(p));
 
   // Pose : on place la figure sur le sol (ou au centre en vue de dessus).
-  const ty = top ? -(box.y0 + box.y1) / 2 : floor - (pose.lift ?? 0) - box.y1;
-  const tx = -(box.x0 + box.x1) / 2;
+  const ty = opts.T ? opts.T[1] : top ? -(box.y0 + box.y1) / 2 : floor - (pose.lift ?? 0) - box.y1;
+  const tx = opts.T ? opts.T[0] : -(box.x0 + box.x1) / 2;
   J = Object.fromEntries(Object.entries(J).map(([k, v]) => [k, [v[0] + tx, v[1] + ty]]));
   box.x0 += tx; box.x1 += tx; box.y0 += ty; box.y1 += ty;
   const parts = bodyParts(J);
+  // Après la translation : un point absolu [x, y] est exprimé dans le repère « monde » de la pose.
+  const R = (spec) => (typeof spec[0] === 'number' ? [spec[0] + tx, spec[1] + ty] : ref(spec, J, facing));
 
   // Étendue des accessoires, pour cadrer toute la scène.
   for (const p of props) {
-    if (p.t === 'wall') { const x = ref(p.at, J, facing)[0]; grow(x, floor - (p.h ?? 105), x, floor); }
+    if (p.t === 'wall') { const x = R(p.at, J, facing)[0]; grow(x, floor - (p.h ?? 105), x, floor); }
     else if (p.t === 'box') {
-      const x = ref(p.at, J, facing)[0];
+      const x = R(p.at, J, facing)[0];
       const x0 = (p.anchor === 'right') !== (facing === -1) ? x - p.w : x;
       grow(x0, floor - p.h, x0 + p.w, floor);
-    } else if (p.t === 'focus') { const [x, y] = ref(p.at, J, facing); const r = p.r ?? 13; grow(x - r, y - r, x + r, y + r); }
+    } else if (p.t === 'focus') { const [x, y] = R(p.at, J, facing); const r = p.r ?? 13; grow(x - r, y - r, x + r, y + r); }
     else if (p.t === 'band' || p.t === 'arrow') {
-      for (const q of [p.from, p.to]) { const [x, y] = ref(q, J, facing); grow(x - 3, y - 3, x + 3, y + 3); }
+      for (const q of [p.from, p.to]) { const [x, y] = R(q, J, facing); grow(x - 3, y - 3, x + 3, y + 3); }
     }
   }
 
   // Cadre : ratio fixe, centré sur la scène, jamais plus serré que 150 unités de large.
-  const ratio = VIEW_H / VIEW_W;
-  const cw = box.x1 - box.x0;
-  const ch = box.y1 - box.y0;
-  const vw = Math.max(cw + 28, (ch + 22) / ratio, 150);
-  const vh = vw * ratio;
-  const vx = (box.x0 + box.x1) / 2 - vw / 2;
-  const vy = top ? (box.y0 + box.y1) / 2 - vh / 2 : box.y1 + 9 - vh;
-  const figCx = (box.x0 + box.x1) / 2;
+  if (opts.out) Object.assign(opts.out, { tx, ty, box: { ...box } });
+  const [vx, vy, vw, vh] = opts.cam ?? frameFor(box, top);
+  const figCx = opts.cam ? vx + vw / 2 : (box.x0 + box.x1) / 2;
 
   const svg = el('svg', { viewBox: `${f(vx)} ${f(vy)} ${f(vw)} ${f(vh)}`, class: 'fig', role: 'img', 'aria-label': pose.label || '' });
   const gDefs = el('defs', null, svg);
@@ -214,7 +224,7 @@ export function renderPose(pose) {
   }
   for (const p of props) {
     if (p.t === 'wall') {
-      const x = ref(p.at, J, facing)[0];
+      const x = R(p.at, J, facing)[0];
       const h = p.h ?? 105;
       const dir = x >= figCx ? 1 : -1; // les hachures sont du côté opposé à la figure
       el('line', { class: 'env', x1: f(x), x2: f(x), y1: floor - h, y2: floor }, gEnv);
@@ -222,7 +232,7 @@ export function renderPose(pose) {
       for (let y = floor - h + 4; y < floor - 2; y += 6.5) d += `M${f(x)} ${f(y)}l${dir * 3.6} -3`;
       el('path', { class: 'env-tick', d }, gEnv);
     } else if (p.t === 'box') {
-      const x = ref(p.at, J, facing)[0];
+      const x = R(p.at, J, facing)[0];
       const x0 = (p.anchor === 'right') !== (facing === -1) ? x - p.w : x;
       el('rect', { class: 'env-fill', x: f(x0), y: floor - p.h, width: p.w, height: p.h, rx: 2 }, gEnv);
       el('line', { class: 'env-top', x1: f(x0 + 1.5), x2: f(x0 + p.w - 1.5), y1: floor - p.h + 4, y2: floor - p.h + 4 }, gEnv);
@@ -233,7 +243,7 @@ export function renderPose(pose) {
   const focus = props.find((p) => p.t === 'focus');
   const lit = new Map(); // pièce -> { c, rx, ry, ang }
   if (focus) {
-    const c = ref(focus.at, J, facing);
+    const c = R(focus.at, J, facing);
     const r = focus.r ?? 13;
     const cands = parts.filter((p) => !p.head).map((part) => ({ part, n: nearest(part, c) }));
     // Les pièces que le point touche (au côté proche d'abord) ; à défaut, la plus proche.
@@ -262,28 +272,30 @@ export function renderPose(pose) {
   // ----- Accessoires et flèches -----
   for (const p of props) {
     if (p.t === 'ball') {
-      const [x, y] = ref(p.at, J, facing);
+      const [x, y] = R(p.at, J, facing);
       const r = roundR(p);
       el('circle', { class: 'ball', cx: f(x), cy: f(y), r }, gTool);
       el('path', { class: 'ball-seam', d: `M${f(x - r * 0.62)} ${f(y - r * 0.5)}q${f(r * 0.7)} ${f(r * 0.5)} 0 ${f(r)}M${f(x + r * 0.62)} ${f(y - r * 0.5)}q${f(-r * 0.7)} ${f(r * 0.5)} 0 ${f(r)}` }, gTool);
     } else if (p.t === 'roller') {
-      const [x, y] = ref(p.at, J, facing);
+      const [x, y] = R(p.at, J, facing);
       const r = roundR(p);
       el('circle', { class: 'roller', cx: f(x), cy: f(y), r }, gTool);
       el('circle', { class: 'roller-core', cx: f(x), cy: f(y), r: f(r * 0.36) }, gTool);
+      // Un rayon qui tourne : on voit le rouleau rouler.
+      if (p.spin !== undefined) el('line', { class: 'roller-spoke', x1: f(x), y1: f(y), x2: f(x + Math.cos(p.spin) * r * 0.8), y2: f(y + Math.sin(p.spin) * r * 0.8) }, gTool);
     } else if (p.t === 'bar') {
-      const a = ref(p.from, J, facing);
-      const b = ref(p.to, J, facing);
+      const a = R(p.from, J, facing);
+      const b = R(p.to, J, facing);
       el('line', { class: 'bar', x1: f(a[0]), y1: f(a[1]), x2: f(b[0]), y2: f(b[1]), 'stroke-width': p.w ?? 12 }, gTool);
     } else if (p.t === 'band') {
-      const a = ref(p.from, J, facing);
-      const b = ref(p.to, J, facing);
+      const a = R(p.from, J, facing);
+      const b = R(p.to, J, facing);
       el('line', { class: 'band', x1: f(a[0]), y1: f(a[1]), x2: f(b[0]), y2: f(b[1]) }, gTool);
       el('circle', { class: 'band-end', cx: f(b[0]), cy: f(b[1]), r: 2.6 }, gTool);
       el('circle', { class: 'band-loop', cx: f(a[0]), cy: f(a[1]), r: 2.4 }, gTool);
-    } else if (p.t === 'arrow') {
-      const a = ref(p.from, J, facing);
-      const b = ref(p.to, J, facing);
+    } else if (p.t === 'arrow' && !opts.noArrows) {
+      const a = R(p.from, J, facing);
+      const b = R(p.to, J, facing);
       let via = a;
       let d = `M${f(a[0])},${f(a[1])} L${f(b[0])},${f(b[1])}`;
       if (p.bend) {

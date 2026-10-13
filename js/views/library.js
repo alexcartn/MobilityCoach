@@ -3,6 +3,7 @@ import { ZONES } from '../data/zones.js';
 import { MOBS, SYSTEMS, METHODS, zoneMobs, getMob } from '../data/mobs.js';
 import { EQUIPMENT } from '../data/profile.js';
 import { renderFrame } from '../diagram.js';
+import { mountFigure, hasMotion } from '../motion.js';
 import { renderBody, viewOf, zonesInView } from '../body.js';
 import { loadSettings } from '../settings.js';
 import { buildRoutine, defaultSeconds, itemSeconds, totalSeconds, zoneRoutine } from '../routine.js';
@@ -17,6 +18,28 @@ const minutesOf = (seconds) => Math.max(1, Math.round(seconds / 60));
 export function duration(m) {
   const min = m.seconds >= 60 ? `${Math.round(m.seconds / 60)} min` : `${m.seconds} s`;
   return m.perSide ? `${min} par côté` : min;
+}
+
+// Schémas animés de la fiche ouverte : arrêtés quand on quitte la page (app.js appelle cleanup).
+let figs = [];
+export function cleanup() { figs.forEach((f) => f.destroy()); figs = []; }
+
+// Première image d'une fiche qui a un mouvement : le schéma, sa légende et un bouton pour le voir bouger.
+// La boucle ne démarre que sur demande : l'écran reste calme.
+function motionFrame(m, total) {
+  const host = h('div');
+  const fig = mountFigure(host, m);
+  figs.push(fig);
+  const btn = h('button', { type: 'button', class: 'btn small motion-btn' });
+  const paint = () => {
+    const on = fig.isPlaying();
+    btn.setAttribute('aria-pressed', String(on));
+    btn.replaceChildren(icon(on ? 'pause' : 'play', 18), on ? 'Pause' : 'Voir le mouvement');
+  };
+  btn.addEventListener('click', () => { fig.setPlaying(!fig.isPlaying(), { force: true }); paint(); });
+  paint();
+  const caption = m.frames[0].caption;
+  return h('figure', { class: 'frame' }, host, h('figcaption', null, total > 1 ? `1. ${caption}` : caption), h('div', { class: 'motion-bar' }, btn));
 }
 
 // #/library : le corps. #/library/7 : le corps avec la zone 7 choisie. #/library/7/couch : une fiche.
@@ -197,6 +220,7 @@ async function renderIndex(root, initialZone) {
 
 // --- Une fiche : où, combien de temps, avec quoi, puis le geste ---------------------------------
 async function renderMob(root, m) {
+  cleanup();
   root.classList.add('has-bar');
   const [s, assessments] = await Promise.all([loadSettings(), loadAssessments()]);
   const last = assessments.at(-1);
@@ -252,7 +276,7 @@ async function renderMob(root, m) {
     ),
     m.toolsNote ? h('p', { class: 'hint' }, m.toolsNote) : null,
 
-    h('div', { class: 'frames' }, m.frames.map((f, i) => renderFrame(f, i, m.frames.length))),
+    h('div', { class: 'frames' }, m.frames.map((f, i) => (i === 0 && hasMotion(m) ? motionFrame(m, m.frames.length) : renderFrame(f, i, m.frames.length)))),
 
     m.caution ? h('p', { class: 'callout warn' }, icon('warn'), h('span', null, m.caution)) : null,
 
