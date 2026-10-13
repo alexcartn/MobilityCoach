@@ -1,36 +1,47 @@
-import { h, toast } from '../ui.js';
+import { h, toast, icon } from '../ui.js';
 import * as store from '../store.js';
 import { canInstall, isStandalone, promptInstall, onInstallChange } from '../install.js';
 import { VERSION } from '../version.js';
 import { getMob } from '../data/mobs.js';
-import { loadSessions, stats } from '../sessions.js';
+import { loadSessions, stats, dayKey } from '../sessions.js';
 import { fmtSeconds } from '../routine.js';
 
 let offInstall;
 
 export async function render(root) {
-  const installBox = h('div');
-  const persistBox = h('p', { class: 'muted small' });
+  const installBox = h('div', { class: 'list' });
+  const persistBox = h('div', { class: 'row' });
 
   function paintInstall() {
     installBox.replaceChildren();
-    if (isStandalone()) {
-      installBox.append(h('p', { class: 'muted small', style: 'margin:0' }, 'Application installée.'));
-    } else if (canInstall()) {
-      installBox.append(h('button', { type: 'button', class: 'btn primary', onClick: promptInstall }, 'Installer l\'application'));
-    } else {
-      installBox.append(h('p', { class: 'muted small', style: 'margin:0' },
-        'Pour installer : menu ⋮ de Chrome, puis « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».'));
-    }
+    const row = (title, sub, clickable) => {
+      const inner = [
+        h('span', { class: 'row-icon accent' }, icon('phone')),
+        h('span', { class: 'row-text' }, h('span', { class: 'row-title' }, title), h('span', { class: 'row-sub' }, sub)),
+        clickable && icon('chevronRight', 18),
+      ];
+      return clickable
+        ? h('button', { type: 'button', class: 'row', onClick: promptInstall }, inner)
+        : h('div', { class: 'row' }, inner);
+    };
+    if (isStandalone()) installBox.append(row('Application installée', 'Disponible hors ligne depuis l\'écran d\'accueil.'));
+    else if (canInstall()) installBox.append(row('Installer l\'application', 'Hors ligne, depuis l\'écran d\'accueil', true));
+    else installBox.append(row('Installer l\'application', 'Menu ⋮ de Chrome, puis « Installer l\'application » ou « Ajouter à l\'écran d\'accueil ».'));
   }
   offInstall?.();
   offInstall = onInstallChange(paintInstall);
   paintInstall();
 
   const persisted = await store.requestPersistence();
-  persistBox.textContent = persisted
-    ? 'Stockage protégé : le navigateur ne purgera pas tes données automatiquement.'
-    : 'Stockage non garanti : pense à exporter tes données de temps en temps.';
+  persistBox.append(
+    h('span', { class: `row-icon ${persisted ? 'ok' : 'warn'}` }, icon(persisted ? 'shield' : 'shieldOff')),
+    h('span', { class: 'row-text' },
+      h('span', { class: 'row-title' }, persisted ? 'Stockage protégé' : 'Stockage non garanti'),
+      h('span', { class: 'row-sub' }, persisted
+        ? 'Tout reste sur ce téléphone : aucun compte, aucun serveur.'
+        : 'Tout reste sur ce téléphone. Pense à exporter tes données de temps en temps.'),
+    ),
+  );
 
   const fileInput = h('input', { type: 'file', accept: 'application/json', hidden: true });
   fileInput.addEventListener('change', async () => {
@@ -65,55 +76,94 @@ export async function render(root) {
 
   const sessions = await loadSessions();
   const st = stats(sessions);
-  const dayName = (d) => d.toLocaleDateString('fr-FR', { weekday: 'narrow' });
+  const week = weekDays(sessions);
+  const history = sessions.slice(-5).reverse();
   const when = (iso) => new Date(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 
-  const history = sessions.slice(-5).reverse();
   root.append(
-    h('h2', null, 'Suivi'),
-    h('p', { class: 'lead' }, 'Le livre insiste : pas de jour off, même court.'),
-    h('div', { class: 'card' },
-      h('div', { class: 'week', role: 'img', 'aria-label': `${st.last7.filter((d) => d.done).length} jours mobilisés sur les 7 derniers` },
-        st.last7.map((d) => h('div', { class: `day${d.done ? ' done' : ''}` },
-          h('span', { class: 'dot' }),
-          h('span', { class: 'muted small' }, dayName(d.date))))),
-      h('div', { class: 'stats' },
-        h('div', null, h('strong', null, String(st.streak)), h('span', { class: 'muted small' }, st.streak > 1 ? ' jours d\'affilée' : ' jour d\'affilée')),
-        h('div', null, h('strong', null, String(st.weekCount)), h('span', { class: 'muted small' }, ' séances sur 7 jours')),
-        h('div', null, h('strong', null, String(Math.round(st.weekSeconds / 60))), h('span', { class: 'muted small' }, ' min sur 7 jours')),
-      ),
+    h('header', { class: 'page-head' },
+      h('h1', { class: 'page-title' }, 'Suivi'),
+      h('p', { class: 'lead' }, 'Ta régularité et tes tests avant/après.'),
     ),
-    history.length
-      ? h('div', { class: 'card' },
-          h('h3', null, 'Dernières séances'),
-          h('ul', { class: 'plain' }, history.map((e) => h('li', null,
-            `${when(e.at)} : ${fmtSeconds(Math.round(e.seconds / 10) * 10)}`,
-            h('span', { class: 'muted small' }, ` (${e.items.map((it) => getMob(it.id)?.name ?? it.id).join(', ')})`)))))
-      : h('div', { class: 'card' },
-          h('h3', null, 'Aucune séance pour l\'instant'),
-          h('p', { class: 'muted small', style: 'margin:0' }, 'Lance une séance depuis Aujourd\'hui : elle apparaîtra ici.')),
 
-    h('p', { class: 'section-title' }, 'Application'),
-    h('div', { class: 'card' }, installBox),
+    h('section', { class: 'card section', 'aria-labelledby': 'week-t' },
+      h('div', { class: 'section-head' },
+        h('h2', { id: 'week-t', style: 'font-family:var(--font-body);font-size:15px;font-weight:700' }, 'Cette semaine'),
+        h('span', { class: 'hint' }, `${week.filter((d) => d.done).length} / 7 jours`),
+      ),
+      weekStrip(week),
+      sessions.length
+        ? h('div', { class: 'stats' },
+            h('div', { class: 'stat' }, h('b', null, String(st.streak)), h('span', null, st.streak > 1 ? 'jours d\'affilée' : 'jour d\'affilée')),
+            h('div', { class: 'stat' }, h('b', null, String(st.weekCount)), h('span', null, 'séances sur 7 jours')),
+            h('div', { class: 'stat' }, h('b', null, String(Math.round(st.weekSeconds / 60))), h('span', null, 'min sur 7 jours')),
+          )
+        : null,
+    ),
 
-    h('p', { class: 'section-title' }, 'Mes données'),
-    h('div', { class: 'card stack' },
-      h('p', { class: 'small', style: 'margin:0' }, 'Tout reste sur ce téléphone : aucun compte, aucun serveur.'),
-      persistBox,
-      h('div', { class: 'btn-row' },
-        h('button', { type: 'button', class: 'btn', onClick: exportData }, 'Exporter'),
-        h('button', { type: 'button', class: 'btn', onClick: () => fileInput.click() }, 'Importer'),
-        h('button', { type: 'button', class: 'btn danger', onClick: wipe }, 'Tout effacer'),
+    sessions.length
+      ? h('section', { class: 'section', style: 'gap:10px' },
+          h('h2', { class: 'section-label' }, 'Dernières séances'),
+          h('ul', { class: 'list' }, history.map((e) =>
+            h('li', { class: 'row' },
+              h('span', { class: 'row-text' },
+                h('span', { class: 'row-title' }, when(e.at)),
+                h('span', { class: 'row-sub' }, e.items.map((it) => getMob(it.id)?.name ?? it.id).join(', ')),
+              ),
+              h('span', { class: 'hint' }, fmtSeconds(Math.round(e.seconds / 10) * 10)),
+            ))),
+        )
+      : h('section', { class: 'hero', style: 'gap:12px' },
+          h('h2', { style: 'font-size:20px' }, 'Aucune séance pour l\'instant'),
+          h('p', null, 'Ton historique et ta régularité s\'afficheront ici dès ta première séance.'),
+          h('a', { href: '#/today', class: 'btn primary', style: 'align-self:flex-start' }, 'Préparer ma séance'),
+        ),
+
+    h('section', { class: 'section', style: 'gap:10px' },
+      h('h2', { class: 'section-label' }, 'Application'),
+      installBox,
+    ),
+
+    h('section', { class: 'section', style: 'gap:10px' },
+      h('h2', { class: 'section-label' }, 'Mes données'),
+      h('div', { class: 'list' },
+        persistBox,
+        h('button', { type: 'button', class: 'row', onClick: exportData },
+          h('span', { class: 'row-icon plain' }, icon('download')), h('span', { class: 'row-title' }, 'Exporter mes données')),
+        h('button', { type: 'button', class: 'row', onClick: () => fileInput.click() },
+          h('span', { class: 'row-icon plain' }, icon('upload')), h('span', { class: 'row-title' }, 'Importer une sauvegarde')),
+        h('button', { type: 'button', class: 'row danger', onClick: wipe },
+          h('span', { class: 'row-icon plain' }, icon('trash')), h('span', { class: 'row-title' }, 'Tout effacer')),
       ),
       fileInput,
     ),
 
-    h('p', { class: 'section-title' }, 'À propos'),
-    h('div', { class: 'card warn' },
-      h('p', { class: 'small', style: 'margin:0' },
-        'Cette application est un outil d\'entraînement, pas un avis médical. Douleur vive, qui irradie, engourdissement ou suite à un choc : consulte un professionnel de santé.'),
-    ),
-    h('p', { class: 'muted small', style: 'margin-top:12px' },
+    h('p', { class: 'callout warn' }, icon('warn'),
+      h('span', null, 'Outil d\'entraînement, pas un avis médical. Douleur vive, qui irradie, engourdissement ou suite à un choc : consulte un professionnel de santé.')),
+    h('p', { class: 'footnote' },
       'Inspirée de Becoming a Supple Leopard (Kelly Starrett et Glen Cordoza). Contenus reformulés, non affiliés. Version ' + VERSION + '.'),
   );
+}
+
+// Lundi à dimanche de la semaine en cours, avec les jours où une séance a été faite.
+function weekDays(sessions) {
+  const done = new Set(sessions.map((s) => dayKey(new Date(s.at))));
+  const today = new Date();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  return 'LMMJVSD'.split('').map((letter, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return { letter, date: d, isToday: d.toDateString() === today.toDateString(), done: done.has(dayKey(d)) };
+  });
+}
+
+function weekStrip(days) {
+  const fmt = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return h('ol', { class: 'week', 'aria-label': 'Jours de la semaine' }, days.map((d) =>
+    h('li', { class: [d.isToday ? 'today' : '', d.done ? 'done' : ''].join(' ').trim() || null },
+      h('span', { 'aria-hidden': 'true' }, d.letter),
+      h('span', { class: 'day' },
+        h('span', { class: 'visually-hidden' }, `${fmt.format(d.date)}${d.isToday ? ', aujourd\'hui' : ''} : ${d.done ? 'séance faite' : 'pas de séance'}`)),
+    )));
 }

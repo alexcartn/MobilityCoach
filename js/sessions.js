@@ -11,7 +11,7 @@ export async function logSession(entry) {
   return all;
 }
 
-const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // Régularité : 7 derniers jours, série de jours consécutifs, volume de la semaine glissante.
 export function stats(sessions, now = new Date()) {

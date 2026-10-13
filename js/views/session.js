@@ -1,4 +1,4 @@
-import { h } from '../ui.js';
+import { h, icon } from '../ui.js';
 import { getMob } from '../data/mobs.js';
 import { renderPose } from '../diagram.js';
 import * as store from '../store.js';
@@ -56,11 +56,11 @@ export async function render(root) {
 
   // --- Interface --------------------------------------------------------------------
   const kicker = h('p', { class: 'kicker' });
-  const title = h('h2', { class: 'session-title' });
+  const title = h('h1', { class: 'session-title' });
   const timer = h('div', { class: 'timer', 'aria-live': 'off' });
   const barFill = h('span');
   const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-label': 'Avancement de la séance' }, barFill);
-  const counter = h('p', { class: 'muted small', style: 'margin:6px 0 0' });
+  const counter = h('p', { class: 'counter-line' });
   const figure = h('div', { class: 'session-fig' });
   const cue = h('p', { class: 'cue' });
   const technique = h('div');
@@ -69,7 +69,7 @@ export async function render(root) {
   const skipBtn = h('button', { type: 'button', class: 'btn big' }, 'Passer');
   const stopBtn = h('button', { type: 'button', class: 'btn danger' }, 'Arrêter');
   const view = h('div', { class: 'session' });
-  const prefs = h('div', { class: 'chips', style: 'justify-content:center' });
+  const prefs = h('div', { class: 'chips center' });
 
   function paintPrefs() {
     prefs.replaceChildren(
@@ -92,12 +92,18 @@ export async function render(root) {
       ? `${sideLabel ? sideLabel + ' : ' : ''}${m.cue}`
       : m.cue;
     technique.replaceChildren(
-      h('details', { class: 'card', style: 'text-align:left' },
-        h('summary', null, 'Voir la technique'),
-        h('div', { class: 'body' },
-          h('ol', { class: 'steps' }, m.steps.map((t) => h('li', null, t))),
-          m.caution && h('p', { class: 'small', style: 'margin-top:10px' }, m.caution),
-        )),
+      h('div', { class: 'list acc flat' },
+        h('details', null,
+          h('summary', null,
+            h('span', { class: 'acc-title' }, 'Voir la technique'),
+            icon('chevronDown', 20, 'chev'),
+          ),
+          h('div', { class: 'acc-body' },
+            h('ol', null, m.steps.map((t) => h('li', null, t))),
+            m.caution && h('p', { class: 'note' }, m.caution),
+          ),
+        ),
+      ),
     );
     counter.textContent = `Fiche ${st.mobIndex + 1} sur ${routine.items.length}`;
   }
@@ -208,19 +214,22 @@ export async function render(root) {
     }
     if (!stopped) { beep(1175, 400); buzz([300, 100, 300]); }
     root.replaceChildren(
-      h('div', { class: 'stack' },
-        h('h2', null, stopped ? 'Séance arrêtée' : 'Séance terminée'),
+      h('div', { class: 'session done' },
+        h('header', { class: 'page-head' },
+          h('span', { class: 'eyebrow' }, 'Séance'),
+          h('h1', { class: 'page-title' }, stopped ? 'Séance arrêtée' : 'Séance terminée'),
+        ),
         h('div', { class: 'card accent' },
-          h('p', { style: 'margin:0 0 6px' }, seconds >= 30 ? `${fmtSeconds(Math.round(seconds / 10) * 10)} de travail enregistrées.` : 'Trop court pour être enregistré.'),
-          h('ul', { class: 'plain' }, items.map((it) => h('li', null, `${getMob(it.id).name} : ${fmtSeconds(it.seconds)}`))),
+          h('p', { class: 'strong' }, seconds >= 30 ? `${fmtSeconds(Math.round(seconds / 10) * 10)} de travail enregistrées.` : 'Trop court pour être enregistré.'),
+          h('ul', { class: 'bullets' }, items.map((it) => h('li', null, `${getMob(it.id).name} : ${fmtSeconds(it.seconds)}`))),
         ),
         h('div', { class: 'card' },
           h('h3', null, 'Reteste'),
-          h('p', { class: 'small', style: 'margin:0' }, 'Refais le test de la position que tu voulais améliorer : as-tu gagné en amplitude ou en stabilité ? Sans changement visible, la zone n\'était peut-être pas la bonne.'),
+          h('p', { class: 'small' }, 'Refais le test de la position que tu voulais améliorer : as-tu gagné en amplitude ou en stabilité ? Sans changement visible, la zone n\'était peut-être pas la bonne.'),
         ),
-        h('div', { class: 'btn-row' },
-          h('a', { class: 'btn primary', href: '#/today', style: 'text-decoration:none;display:inline-flex;align-items:center' }, 'Retour'),
-          h('a', { class: 'btn', href: '#/progress', style: 'text-decoration:none;display:inline-flex;align-items:center' }, 'Mon suivi'),
+        h('div', { class: 'btn-row stretch' },
+          h('a', { class: 'btn primary big', href: '#/today' }, 'Retour'),
+          h('a', { class: 'btn big', href: '#/progress' }, 'Mon suivi'),
         ),
       ),
     );
@@ -234,15 +243,14 @@ export async function render(root) {
   };
 
   view.append(
-    h('div', null, kicker, title),
-    timer,
-    bar,
-    counter,
+    h('section', { class: 'hero session-hero', 'aria-label': 'Minuteur' },
+      kicker, title, timer, bar, counter,
+    ),
     figure,
     cue,
     h('div', { class: 'btn-row stretch' }, mainBtn, plusBtn, skipBtn),
-    h('div', { style: 'margin:14px 0 6px' }, prefs),
-    h('div', { class: 'btn-row', style: 'justify-content:center;margin-bottom:12px' }, stopBtn),
+    prefs,
+    h('div', { class: 'btn-row center' }, stopBtn),
     technique,
   );
   root.append(view);

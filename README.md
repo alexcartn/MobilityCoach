@@ -19,3 +19,7 @@ Sans `node tools/stamp.mjs`, les téléphones gardent l'ancienne version en cach
 ## Contenu
 
 Les textes sont des reformulations. Le livre (epub, pdf) ne doit jamais être commité : `.gitignore` le bloque.
+
+## Polices
+
+Bricolage Grotesque et Instrument Sans, auto-hébergées dans `fonts/` (licence SIL OFL) : l'app reste entièrement hors ligne.

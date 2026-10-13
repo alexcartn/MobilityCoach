@@ -1,32 +1,38 @@
-import { h, chipGroup } from '../ui.js';
+import { h, chipGroup, icon } from '../ui.js';
 import { CONTEXTS, SPORTS, EQUIPMENT, DURATIONS } from '../data/profile.js';
 import { loadSettings, saveSettings } from '../settings.js';
 import { MOBS, getMob } from '../data/mobs.js';
 import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS } from '../routine.js';
 import * as store from '../store.js';
 
+const CONTEXT_ICONS = { sport: 'sport', back: 'back', sitting: 'sitting', travel: 'travel' };
+
+const dateLabel = () => new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 const validRoutine = (r) => r && Array.isArray(r.items) && r.items.every((it) => getMob(it.id) && it.seconds >= MIN_SECONDS);
 
 export async function render(root) {
   let s = await loadSettings();
   let routine = await store.get('routine', null);
   if (!validRoutine(routine) || routine.auto) routine = { auto: true, items: buildRoutine(s).items };
-
   const persist = () => store.set('routine', { auto: routine.auto, items: routine.items });
   await persist(); // la séance auto doit exister en base pour que l'écran de séance la retrouve
 
+  let tipIndex = 0;
+  let editing = false;
+
+  const heroTitle = h('h2', { id: 'seance-t' });
+  const ringValue = h('b');
+  const heroTags = h('div', { class: 'hero-tags' });
+  const heroList = h('ol', { class: 'hero-list' });
+  const heroNote = h('p', { class: 'hero-note' });
+  const startBtn = h('a', { class: 'btn primary big', role: 'button' }, icon('play', 18), 'Démarrer la séance');
+  const editBtn = h('button', { type: 'button', class: 'btn light', 'aria-expanded': 'false', 'aria-controls': 'edit-panel' }, 'Modifier');
+  const editPanel = h('section', { class: 'card edit-panel', id: 'edit-panel', hidden: true, 'aria-label': 'Modifier ma séance' });
   const sportsBox = h('div');
-  const adviceBox = h('div');
-  const routineBox = h('div');
-  const summaryText = h('span', { class: 'muted small' });
-  const settingsBox = h('details', { class: 'card', open: s.contexts.length === 0 });
+  const warnBox = h('div');
+  const tipBox = h('div');
 
-  function paintSummary() {
-    const names = CONTEXTS.filter((c) => s.contexts.includes(c.id)).map((c) => c.label);
-    summaryText.textContent = `${names.length ? names.join(', ') : 'Aucun contexte'} · ${s.duration} min`;
-  }
-
-  // Un réglage change : on met à jour la séance automatique, pas une séance retouchée à la main.
+  // Un réglage change : on met à jour la séance automatique, jamais une séance retouchée à la main.
   function save(patch) {
     s = { ...s, ...patch };
     saveSettings(s);
@@ -34,157 +40,246 @@ export async function render(root) {
       routine = { auto: true, items: buildRoutine(s).items };
       persist();
     }
-    paintAll();
+    paintDynamic();
   }
 
   function edit(fn) {
     routine = { auto: false, items: routine.items.map((it) => ({ ...it })) };
     fn(routine.items);
     persist();
-    paintRoutine();
+    paintHero();
+    paintEdit();
   }
 
-  const iconBtn = (symbol, label, onClick, disabled = false) =>
-    h('button', { type: 'button', class: 'icon-btn', 'aria-label': label, title: label, disabled, onClick }, symbol);
+  const timeLabel = (it) => `${fmtSeconds(it.seconds)}${getMob(it.id).perSide ? ' par côté' : ''}`;
 
-  function paintRoutine() {
-    routineBox.replaceChildren();
+  function paintHero() {
     const items = routine.items;
     const total = totalSeconds(items);
-    const budget = s.duration * 60;
-    const zones = zonesOf(items).size;
-    const short = items.some((it) => it.seconds < DEFAULT_SECONDS && getMob(it.id).seconds >= DEFAULT_SECONDS);
-    const notInRoutine = MOBS.filter((m) => !items.some((it) => it.id === m.id));
+    heroTitle.textContent = !routine.auto ? 'Ta séance personnalisée' : s.contexts.length ? 'Ta routine sur mesure' : 'Séance de base';
+    ringValue.textContent = items.length ? String(Math.max(1, Math.round(total / 60))) : '0';
 
+    heroTags.replaceChildren();
+    const active = CONTEXTS.filter((c) => s.contexts.includes(c.id));
+    if (!active.length) heroTags.append(h('span', { class: 'hero-tag placeholder' }, 'Choisis ton contexte ci-dessous'));
+    for (const c of active) heroTags.append(h('span', { class: 'hero-tag' }, c.label));
+    const n = s.equipment.length;
+    heroTags.append(h('span', { class: 'hero-tag' }, n ? `${n} matériel${n > 1 ? 's' : ''}` : 'Sans matériel'));
+
+    heroList.replaceChildren(...items.map((it, idx) => {
+      const m = getMob(it.id);
+      return h('li', null,
+        h('span', { class: 'n', 'aria-hidden': 'true' }, String(idx + 1)),
+        h('a', { href: `#/library/${m.zone}/${m.id}` }, m.name),
+        h('span', { class: 't' }, timeLabel(it)),
+      );
+    }));
+
+    const budget = s.duration * 60;
+    const notes = [];
+    if (!items.length) notes.push('Séance vide : ajoute une fiche ou ajuste tes réglages.');
+    if (total > budget + 60) notes.push(`Plus long que ton temps disponible (${s.duration} min).`);
+    if (zonesOf(items).size > MAX_ZONES) notes.push(`Le livre conseille ${MAX_ZONES} zones au maximum par séance.`);
+    if (items.some((it) => it.seconds < DEFAULT_SECONDS && getMob(it.id).seconds >= DEFAULT_SECONDS)) {
+      notes.push('Moins de 2 minutes par position : le livre recommande au moins 2 minutes.');
+    }
+    heroNote.textContent = notes.join(' ');
+    heroNote.hidden = notes.length === 0;
+
+    if (items.length) {
+      startBtn.setAttribute('href', '#/session');
+      startBtn.removeAttribute('aria-disabled');
+      startBtn.classList.remove('disabled');
+    } else {
+      startBtn.removeAttribute('href');
+      startBtn.setAttribute('aria-disabled', 'true');
+      startBtn.classList.add('disabled');
+    }
+  }
+
+  const iconBtn = (name, label, onClick, disabled = false) =>
+    h('button', { type: 'button', class: 'icon-btn', 'aria-label': label, title: label, disabled, onClick }, icon(name, 18));
+
+  function paintEdit() {
+    const items = routine.items;
+    const notIn = MOBS.filter((m) => !items.some((it) => it.id === m.id));
     const select = h('select', { class: 'select', 'aria-label': 'Ajouter une fiche' },
       h('option', { value: '' }, 'Ajouter une fiche…'),
-      notInRoutine.map((m) => {
+      notIn.map((m) => {
         const missing = m.tools.filter((t) => !s.equipment.includes(t));
         return h('option', { value: m.id }, missing.length ? `${m.name} (matériel manquant)` : m.name);
       }),
     );
 
-    routineBox.append(
-      h('div', { class: 'card' },
-        h('div', { class: 'row-between' },
-          h('h3', { style: 'margin:0' }, 'Ma séance'),
-          h('span', { class: 'muted' }, items.length ? `≈ ${Math.max(1, Math.round(total / 60))} min` : ''),
-        ),
-        !routine.auto
-          ? h('p', { class: 'muted small', style: 'margin:6px 0 0' }, 'Séance personnalisée : tes réglages ne la modifient plus.')
-          : s.contexts.length === 0
-            ? h('p', { class: 'muted small', style: 'margin:6px 0 0' }, 'Séance de base. Choisis un contexte pour l\'adapter.')
-            : null,
+    editPanel.replaceChildren(
+      h('div', { class: 'section-head' },
+        h('h3', { class: 'section-title' }, 'Modifier ma séance'),
+        !routine.auto && h('button', {
+          type: 'button', class: 'btn small',
+          onClick: () => { routine = { auto: true, items: buildRoutine(s).items }; persist(); paintHero(); paintEdit(); },
+        }, icon('retest', 16), 'Régénérer'),
+      ),
+      !routine.auto && h('p', { class: 'hint' }, 'Séance personnalisée : tes réglages ne la modifient plus tant que tu ne la régénères pas.'),
+      items.length
+        ? h('ul', { class: 'edit-list' }, items.map((it, idx) => {
+            const m = getMob(it.id);
+            return h('li', null,
+              h('div', { class: 'edit-main' },
+                h('span', { class: 'row-title' }, m.name),
+                h('span', { class: 'row-sub' }, timeLabel(it)),
+              ),
+              h('div', { class: 'edit-ctrl' },
+                iconBtn('up', 'Monter', () => edit((l) => { [l[idx - 1], l[idx]] = [l[idx], l[idx - 1]]; }), idx === 0),
+                iconBtn('down', 'Descendre', () => edit((l) => { [l[idx + 1], l[idx]] = [l[idx], l[idx + 1]]; }), idx === items.length - 1),
+                iconBtn('minus', 'Moins de temps', () => edit((l) => { l[idx].seconds = Math.max(MIN_SECONDS, l[idx].seconds - 30); }), it.seconds <= MIN_SECONDS),
+                iconBtn('plus', 'Plus de temps', () => edit((l) => { l[idx].seconds += 30; })),
+                iconBtn('close', 'Retirer', () => edit((l) => { l.splice(idx, 1); })),
+              ),
+            );
+          }))
+        : h('p', { class: 'hint' }, 'Aucune fiche pour le moment.'),
+      h('div', { class: 'edit-add' },
+        select,
+        h('button', {
+          type: 'button', class: 'btn',
+          onClick: () => {
+            const m = getMob(select.value);
+            if (m) edit((l) => l.push({ id: m.id, seconds: defaultSeconds(m) }));
+          },
+        }, 'Ajouter'),
+      ),
+    );
+  }
 
-        items.length
-          ? h('ol', { class: 'routine' }, items.map((it, idx) => {
-              const m = getMob(it.id);
-              return h('li', null,
-                h('div', { class: 'rt-main' },
-                  h('a', { class: 'rt-name', href: `#/library/${m.zone}/${m.id}` }, m.name),
-                  h('span', { class: 'muted small' }, `${fmtSeconds(it.seconds)}${m.perSide ? ' par côté' : ''}`),
-                ),
-                h('div', { class: 'rt-ctrl' },
-                  iconBtn('↑', 'Monter', () => edit((l) => { [l[idx - 1], l[idx]] = [l[idx], l[idx - 1]]; }), idx === 0),
-                  iconBtn('↓', 'Descendre', () => edit((l) => { [l[idx + 1], l[idx]] = [l[idx], l[idx + 1]]; }), idx === items.length - 1),
-                  iconBtn('−', 'Moins de temps', () => edit((l) => { l[idx].seconds = Math.max(MIN_SECONDS, l[idx].seconds - 30); }), it.seconds <= MIN_SECONDS),
-                  iconBtn('+', 'Plus de temps', () => edit((l) => { l[idx].seconds += 30; })),
-                  iconBtn('✕', 'Retirer', () => edit((l) => { l.splice(idx, 1); })),
-                ),
-              );
-            }))
-          : h('p', { class: 'muted', style: 'margin:12px 0 0' }, 'Séance vide. Ajoute une fiche ou ajuste tes réglages.'),
+  editBtn.addEventListener('click', () => {
+    editing = !editing;
+    editPanel.hidden = !editing;
+    editBtn.setAttribute('aria-expanded', String(editing));
+    editBtn.textContent = editing ? 'Terminer' : 'Modifier';
+    if (editing) paintEdit();
+  });
 
-        total > budget + 60 && h('p', { class: 'small warn-text' }, `Plus long que ton temps disponible (${s.duration} min).`),
-        zones > MAX_ZONES && h('p', { class: 'small muted' }, `Le livre conseille ${MAX_ZONES} zones au maximum par séance.`),
-        short && h('p', { class: 'small muted' }, 'Moins de 2 minutes par position : le livre recommande au moins 2 minutes.'),
-
-        h('div', { class: 'row-add' },
-          select,
-          h('button', {
-            type: 'button', class: 'btn',
-            onClick: () => {
-              const m = getMob(select.value);
-              if (m) edit((l) => l.push({ id: m.id, seconds: defaultSeconds(m) }));
-            },
-          }, 'Ajouter'),
-        ),
-
-        h('div', { class: 'btn-row', style: 'margin-top:14px' },
-          h('a', { class: `btn primary big${items.length ? '' : ' disabled'}`, href: items.length ? '#/session' : null, role: 'button', 'aria-disabled': items.length ? null : 'true', style: 'flex:1;text-align:center;text-decoration:none;display:inline-flex;align-items:center;justify-content:center' }, 'Démarrer la séance'),
-          !routine.auto && h('button', {
-            type: 'button', class: 'btn',
-            onClick: () => { routine = { auto: true, items: buildRoutine(s).items }; persist(); paintRoutine(); },
-          }, 'Régénérer'),
+  function paintTips() {
+    const tips = CONTEXTS.filter((c) => s.contexts.includes(c.id))
+      .flatMap((c) => c.tips.map((t) => ({ context: c.label, text: t })));
+    tipBox.replaceChildren();
+    if (!tips.length) {
+      tipBox.append(h('p', { class: 'card hint' }, 'Choisis au moins un contexte pour afficher des conseils adaptés.'));
+      return;
+    }
+    tipIndex = Math.min(tipIndex, tips.length - 1);
+    const tip = tips[tipIndex];
+    const go = (d) => { tipIndex = (tipIndex + d + tips.length) % tips.length; paintTips(); };
+    tipBox.append(
+      h('article', { class: 'card tip', 'aria-live': 'polite' },
+        h('span', { class: 'tip-tag' }, tip.context),
+        h('p', { class: 'tip-text' }, tip.text),
+        h('div', { class: 'tip-foot' },
+          h('div', { class: 'dots', 'aria-label': `Conseil ${tipIndex + 1} sur ${tips.length}` },
+            tips.map((_, i) => h('span', { class: i === tipIndex ? 'on' : null }))),
+          h('div', { class: 'tip-nav' },
+            h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Conseil précédent', disabled: tips.length < 2, onClick: () => go(-1) }, icon('chevronLeft')),
+            h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Conseil suivant', disabled: tips.length < 2, onClick: () => go(1) }, icon('chevronRight')),
+          ),
         ),
       ),
     );
   }
 
   function paintDynamic() {
+    paintHero();
+    if (editing) paintEdit();
+
     sportsBox.replaceChildren();
     if (s.contexts.includes('sport')) {
       sportsBox.append(
-        h('p', { class: 'section-title' }, 'Ton sport'),
-        chipGroup({ options: SPORTS, selected: s.sports, label: 'Sport pratiqué', onChange: (v) => save({ sports: v }) }),
-      );
-    }
-
-    adviceBox.replaceChildren();
-    const active = CONTEXTS.filter((c) => s.contexts.includes(c.id));
-    for (const c of active) {
-      adviceBox.append(
-        h('div', { class: 'card' },
-          h('h3', null, c.label),
-          c.warning && h('p', { class: 'card warn small', style: 'margin:0 0 10px' }, c.warning),
-          h('ul', { class: 'plain' }, c.tips.map((t) => h('li', null, t))),
+        h('section', { class: 'section' },
+          h('h2', { class: 'section-title' }, 'Ton sport'),
+          chipGroup({ options: SPORTS, selected: s.sports, label: 'Sport pratiqué', onChange: (v) => save({ sports: v }) }),
         ),
       );
     }
+
+    warnBox.replaceChildren();
+    for (const c of CONTEXTS.filter((x) => x.warning && s.contexts.includes(x.id))) {
+      warnBox.append(h('p', { class: 'callout warn' }, icon('warn'), h('span', null, c.warning)));
+    }
+
+    paintTips();
   }
 
-  function paintAll() {
-    paintSummary();
-    paintDynamic();
-    paintRoutine();
-  }
+  root.append(
+    h('header', { class: 'page-head' },
+      h('span', { class: 'eyebrow' }, dateLabel()),
+      h('h1', { class: 'page-title' }, 'Aujourd\'hui'),
+    ),
 
-  settingsBox.append(
-    h('summary', null, h('span', null, 'Régler ma séance'), summaryText),
-    h('div', { class: 'body' },
-      h('p', { class: 'section-title', style: 'margin-top:0' }, 'Mon contexte'),
+    h('section', { class: 'hero', 'aria-labelledby': 'seance-t' },
+      h('div', { class: 'hero-top' },
+        h('div', null,
+          h('span', { class: 'hero-label' }, 'Ma séance du jour'),
+          heroTitle,
+        ),
+        h('div', { class: 'ring', 'aria-label': 'Durée de la séance en minutes' }, ringValue, h('span', null, 'min')),
+      ),
+      heroTags,
+      heroList,
+      heroNote,
+      h('div', { class: 'hero-actions' }, startBtn, editBtn),
+    ),
+    editPanel,
+
+    h('section', { class: 'section' },
+      h('div', { class: 'section-head' },
+        h('h2', { class: 'section-title' }, 'Mon contexte'),
+        h('span', { class: 'hint' }, 'Plusieurs choix'),
+      ),
       chipGroup({
         options: CONTEXTS.map((c) => ({ id: c.id, label: c.label })),
         selected: s.contexts,
         label: 'Contextes actifs',
-        onChange: (v) => save({ contexts: v }),
+        className: 'tiles',
+        itemClass: 'tile',
+        render: (o) => [
+          h('span', { class: 'tile-top' }, icon(CONTEXT_ICONS[o.id], 26), h('span', { class: 'check' }, icon('check', 14))),
+          h('span', { class: 'tile-label' }, o.label),
+        ],
+        onChange: (v) => { tipIndex = 0; save({ contexts: v }); },
       }),
-      sportsBox,
+      warnBox,
+    ),
+    sportsBox,
 
-      h('p', { class: 'section-title' }, 'Temps disponible'),
+    h('section', { class: 'section' },
+      h('h2', { class: 'section-title' }, 'Temps disponible'),
       chipGroup({
-        options: DURATIONS, selected: [s.duration], multi: false, label: 'Durée de la séance',
+        options: DURATIONS,
+        selected: [s.duration],
+        multi: false,
+        label: 'Durée de la séance',
+        className: 'segmented',
+        itemClass: '',
+        render: (o) => o.label,
         onChange: (v) => save({ duration: v[0] }),
       }),
-      h('p', { class: 'muted small', style: 'margin-top:8px' },
-        'Le livre vise 15 à 20 minutes par jour, qu\'on peut répartir en petites doses.'),
+      h('p', { class: 'hint' }, 'Le livre vise 15 à 20 minutes par jour, qu\'on peut répartir en petites doses.'),
+    ),
 
-      h('p', { class: 'section-title' }, 'Matériel à disposition'),
+    h('section', { class: 'section' },
+      h('h2', { class: 'section-title' }, 'Matériel à disposition'),
       chipGroup({
-        options: EQUIPMENT, selected: s.equipment, label: 'Matériel',
+        options: EQUIPMENT,
+        selected: s.equipment,
+        label: 'Matériel',
         onChange: (v) => save({ equipment: v }),
       }),
     ),
+
+    h('section', { class: 'section' },
+      h('h2', { class: 'section-title' }, 'Conseils du moment'),
+      tipBox,
+    ),
   );
 
-  root.append(
-    h('h2', null, 'Aujourd\'hui'),
-    h('p', { class: 'lead' }, 'Ta séance se règle sur ton contexte, ton temps et ton matériel. Tu peux la retoucher.'),
-    settingsBox,
-    h('div', { style: 'margin-top:12px' }, routineBox),
-    h('p', { class: 'section-title' }, 'Conseils du moment'),
-    adviceBox,
-  );
-
-  paintAll();
+  paintDynamic();
 }
