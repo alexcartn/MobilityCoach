@@ -22,27 +22,30 @@ export function wave(p) {
   return 0;
 }
 
-function mixPose(a, b, s) {
+function mixPose(a, b, s, rigidArms = false) {
   const arms = (p) => p.arms ?? [{ upper: 90, fore: 90 }];
+  const torso = lerpN(a.torso, b.torso, s);
+  const turn = rigidArms ? torso - a.torso : 0; // bras croisés ou tendus avec le buste : ils tournent avec lui
   return {
     ...a,
-    torso: lerpN(a.torso, b.torso, s),
+    torso,
     head: lerpN(a.head ?? a.torso, b.head ?? b.torso, s),
     legs: a.legs.map((g, i) => ({
       thigh: lerpN(g.thigh, b.legs[i].thigh, s), shin: lerpN(g.shin, b.legs[i].shin, s), foot: lerpN(g.foot ?? 0, b.legs[i].foot ?? 0, s),
     })),
-    arms: arms(a).map((g, i) => ({ upper: lerpN(g.upper, arms(b)[i].upper, s), fore: lerpN(g.fore, arms(b)[i].fore, s) })),
+    arms: arms(a).map((g, i) => ({ upper: lerpN(g.upper, arms(b)[i].upper, s) + turn, fore: lerpN(g.fore, arms(b)[i].fore, s) + turn })),
   };
 }
 
 // Articulation (coude ou genou) entre S et H pour des os de longueurs l1 et l2. Elle ne se plie que dans le sens
-// de l'anatomie : les poses sont écrites pour une personne tournée vers la droite, vue de côté (le miroir est
-// appliqué au dessin). Le coude se plie vers l'avant, l'avant-bras tourne dans le sens inverse des aiguilles
+// de l'anatomie, jamais en hyperextension. Vue de côté, pour une personne tournée vers la droite (le miroir est
+// appliqué au dessin) : le coude se plie vers l'avant, l'avant-bras tourne dans le sens inverse des aiguilles
 // d'une montre par rapport au bras (flex = -1) ; le genou se plie vers l'arrière, le tibia tourne dans le sens
-// des aiguilles d'une montre par rapport à la cuisse (flex = +1). Jamais d'hyperextension.
-const ELBOW = -1;
-const KNEE = 1;
-function twoBone(S, H, l1, l2, flex) {
+// des aiguilles d'une montre par rapport à la cuisse (flex = +1). Pour une personne tournée vers la gauche (couchée
+// sur le ventre la tête à gauche, par exemple), c'est l'inverse. Vue de dessus (flex = 0), le sens n'est pas
+// lisible : on garde le côté de la pose de référence `near`.
+const flexOf = (dir) => ({ elbow: -dir, knee: dir });
+function twoBone(S, H, l1, l2, flex, near) {
   const dx = H[0] - S[0];
   const dy = H[1] - S[1];
   const len = Math.hypot(dx, dy) || 1;
@@ -55,19 +58,35 @@ function twoBone(S, H, l1, l2, flex) {
   const at = (side) => [S[0] + ux * a - uy * h * side, S[1] + uy * a + ux * h * side];
   const turn = (E) => (E[0] - S[0]) * (H[1] - E[1]) - (E[1] - S[1]) * (H[0] - E[0]);
   const e = at(1);
+  if (flex === 0) {
+    const f = at(-1);
+    return Math.hypot(e[0] - near[0], e[1] - near[1]) <= Math.hypot(f[0] - near[0], f[1] - near[1]) ? e : f;
+  }
   return Math.sign(turn(e)) === flex ? e : at(-1);
+}
+
+// Sens de la personne dans la pose : 1 tournée vers la droite, -1 vers la gauche, 0 vue de dessus. Lu sur les
+// articulations franchement pliées (plus de 10°) ; `faces` dans js/data/motions.js corrige un doute.
+const wrap = (d) => ((d + 180) % 360 + 360) % 360 - 180;
+export function orientation(frame) {
+  if (frame.view === 'top') return 0;
+  let right = 0;
+  let left = 0;
+  for (const a of frame.arms ?? []) { const r = wrap(a.fore - a.upper); if (r < -10) right++; else if (r > 10) left++; }
+  for (const l of frame.legs) { const r = wrap(l.shin - l.thigh); if (r > 10) right++; else if (r < -10) left++; }
+  return left > right ? -1 : 1;
 }
 
 const unionBox = (a, b) => ({ x0: Math.min(a.x0, b.x0), x1: Math.max(a.x1, b.x1), y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1) });
 
-// spec : { frames: [poseA, poseB], period, anchor?, slide?: { angle, from, to }, hands?, feet?, still?: [types],
+// spec : { frames: [poseA, poseB], period, rigidArms?, anchor?, slide?: { angle, from, to }, hands?, feet?, still?: [types],
 //          stillEnds?: { band: ['to'] }, refS? }
 // hands : true (les mains restent posées, le coude se plie) ou 'forearm' (l'avant-bras reste posé aussi : le bras pivote
 // autour du coude, comme sur un rouleau avec appui sur les avant-bras).
 export function makeAnimation(spec, facing = 1) {
   const [kfA, kfB] = spec.frames;
   const refS = spec.refS ?? 0;
-  const anchorAt = spec.anchor ? skeleton(mixPose(kfA, kfB, refS))[spec.anchor] : null;
+  const anchorAt = spec.anchor ? skeleton(mixPose(kfA, kfB, refS, spec.rigidArms))[spec.anchor] : null;
   const slideVec = (s) => {
     if (!spec.slide) return [0, 0];
     const a = (spec.slide.angle * Math.PI) / 180;
@@ -77,13 +96,14 @@ export function makeAnimation(spec, facing = 1) {
 
   // Articulations au temps s (angles, ancre, glissement), avant de poser mains et pieds.
   function base(s) {
-    const pose = mixPose(kfA, kfB, s);
+    const pose = mixPose(kfA, kfB, s, spec.rigidArms);
     const J = skeleton(pose);
     const d = anchorAt ? [anchorAt[0] - J[spec.anchor][0], anchorAt[1] - J[spec.anchor][1]] : [0, 0];
     const v = slideVec(s);
     return { pose, J: shiftPts(J, [d[0] + v[0], d[1] + v[1]]) };
   }
 
+  const flex = flexOf(spec.dir ?? 1);
   const J0 = base(refS).J; // l'état de référence : là où se posent les mains, les pieds, le rouleau et le mur
   const ks = ['', '2'];
   const hands = spec.hands ? ks.map((k) => ({ k, H: J0['hand' + k], E: J0['elbow' + k] })) : null;
@@ -92,12 +112,12 @@ export function makeAnimation(spec, facing = 1) {
   function solve(s) {
     const { pose, J } = base(s);
     for (const { k, H, E } of hands ?? []) {
-      J['elbow' + k] = spec.hands === 'forearm' ? E : twoBone(J.shoulder, H, L.upper, L.fore, ELBOW);
+      J['elbow' + k] = spec.hands === 'forearm' ? E : twoBone(J.shoulder, H, L.upper, L.fore, flex.elbow, E);
       J['hand' + k] = H;
     }
     for (const { k, A } of feet ?? []) {
       const toe = [J['toe' + k][0] - J['ankle' + k][0], J['toe' + k][1] - J['ankle' + k][1]]; // le pied garde son angle
-      const knee = twoBone(J.hip, A, L.thigh, L.shin, KNEE);
+      const knee = twoBone(J.hip, A, L.thigh, L.shin, flex.knee, J0['knee' + k]);
       J['knee' + k] = knee;
       J['ankle' + k] = A;
       J['toe' + k] = [A[0] + toe[0], A[1] + toe[1]];
@@ -112,7 +132,10 @@ export function makeAnimation(spec, facing = 1) {
   const mx = (pt) => (facing === -1 ? [-pt[0], pt[1]] : pt);
   const baseProps = (kfA.props ?? []).map((p) => {
     if (still.has(p.t) && p.at) return { ...p, at: mx(ref(p.at, J0, 1)) };
-    if (p.t === 'band' && spec.stillEnds?.band?.includes('to')) return { ...p, to: mx(ref(p.to, J0, 1)) };
+    if (p.t === 'band' && spec.stillEnds?.band?.length) {
+      const ends = spec.stillEnds.band;
+      return { ...p, ...(ends.includes('from') ? { from: mx(ref(p.from, J0, 1)) } : {}), ...(ends.includes('to') ? { to: mx(ref(p.to, J0, 1)) } : {}) };
+    }
     return p;
   });
   const propsAt = (s, arrows) => baseProps
@@ -140,16 +163,19 @@ export function makeAnimation(spec, facing = 1) {
     const { pose, J } = solve(s);
     return renderPose({ ...pose, label, facing, props: propsAt(s, arrows) }, { J, T, cam, noArrows: !arrows });
   };
-  return { draw, period: spec.period, joints: (s) => solve(s).J };
+  // Pour les contrôles : articulations et boîte englobante au temps s.
+  const box = (s) => { const { pose, J } = solve(s); const o = {}; renderPose({ ...pose, facing, props: propsAt(s, false) }, { J, T, cam, out: o, noArrows: true }); return o.box; };
+  return { draw, period: spec.period, joints: (s) => solve(s).J, box };
 }
 
 // La spécification complète d'une fiche : ses images, plus ce que dit js/data/motions.js.
 export function motionSpec(mob) {
   const m = MOTIONS[mob.id];
   if (!m) return null;
-  const a = mob.frames[0];
+  const a = m.begin ? { ...mob.frames[0], ...m.begin } : mob.frames[0];
   const b = m.end ? { ...a, ...m.end } : (mob.frames[1] ?? a);
-  return { ...m, frames: [a, b] };
+  const dir = m.faces ? (m.faces === 'left' ? -1 : 1) : orientation(mob.frames[0]);
+  return { ...m, dir, frames: [a, b] };
 }
 export const hasMotion = (mob) => !!MOTIONS[mob.id];
 

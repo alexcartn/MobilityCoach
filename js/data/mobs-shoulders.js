@@ -537,7 +537,7 @@ export const SHOULDERS = [
         caption: 'Sur le dos, mains sous le bas du dos, les hanches descendent sur elles.',
         torso: 174, head: 176,
         legs: [{ thigh: -45, shin: 70, foot: 0 }, { thigh: -47, shin: 68, foot: 0 }],
-        arms: [{ upper: 110, fore: 175 }],
+        arms: [{ upper: 8, fore: 4 }],
         props: [{ t: 'focus', at: ['shoulder', 0, 4], r: 12 }, { t: 'arrow', from: ['hip', 8, -20], to: ['hip', 8, -4] }],
       },
     ],

@@ -358,7 +358,7 @@ export const REST = [
         caption: 'Sur le dos, balle sur l\'abdomen poussée par les mains, le genou monte.',
         torso: 176, head: 176,
         legs: [{ thigh: -62, shin: 20, foot: 0 }, { thigh: -10, shin: -2, foot: -70 }],
-        arms: [{ upper: 35, fore: 85 }],
+        arms: [{ upper: 20, fore: -77 }],
         props: [{ t: 'ball', at: ['belly', 0, -7], r: 4.5 }, { t: 'focus', at: ['belly', 0, -4], r: 11 }],
       },
     ],

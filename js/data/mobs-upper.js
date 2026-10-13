@@ -37,7 +37,7 @@ export const UPPER = [
         caption: 'Allongé, balle derrière l\'épaule, bras bougé vers l\'intérieur et l\'extérieur.',
         torso: 178, head: 178,
         legs: [{ thigh: -55, shin: 75, foot: 0 }, { thigh: -52, shin: 72, foot: 0 }],
-        arms: [{ upper: -75, fore: 5 }],
+        arms: [{ upper: -75, fore: -160 }],
         props: [
           { t: 'ball', at: ['shoulder', 5, 10] },
           { t: 'focus', at: ['shoulder', 3, 3], r: 12 },
