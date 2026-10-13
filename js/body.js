@@ -1,4 +1,5 @@
-// Silhouette du corps (faces avant et arrière) colorée selon le score de chaque zone.
+// Silhouette du corps (faces avant et arrière) colorée selon le score de chaque zone, dans le même
+// langage que les schémas (js/diagram.js) : contour fin à l'encre, zone choisie hachurée.
 // Géométrie issue de la maquette ; chaque forme porte le numéro de la zone du livre.
 
 import { bucket, zoneName } from './assessment.js';
@@ -39,6 +40,7 @@ const BACK = [
 ];
 
 const MIRROR = 'matrix(-1 0 0 1 200 0)';
+let uid = 0;
 
 // Zones visibles sur chaque face, dans l'ordre de la silhouette (de haut en bas).
 export const zonesInView = (view) => [...new Set((view === 'back' ? BACK : FRONT).map((p) => p.z).filter((z) => z !== null))].sort((a, b) => a - b);
@@ -46,8 +48,10 @@ export const zonesInView = (view) => [...new Set((view === 'back' ? BACK : FRONT
 export const viewOf = (zoneId) => (zonesInView('front').includes(zoneId) ? 'front' : 'back');
 
 // view : 'front' | 'back' ; scores : { zoneId: 0-100 | null } ; onZone(zoneId, auClavier) rend les zones cliquables.
-// selected : zone mise en avant ; role : 'link' (navigation) ou 'button' (sélection) ; decorative : ignoré par les lecteurs d'écran.
-export function renderBody(view, scores, { onZone, width = 130, selected = null, role = 'link', decorative = false } = {}) {
+// selected : zone mise en avant (hachurée) ; mark : 'ink' (hachures à l'encre : sélection dans une carte de scores)
+// ou 'accent' (hachures fauves, comme la zone travaillée d'un schéma) ; role : 'link' (navigation) ou 'button' (sélection) ;
+// decorative : ignoré par les lecteurs d'écran.
+export function renderBody(view, scores, { onZone, width = 130, selected = null, mark = 'ink', role = 'link', decorative = false } = {}) {
   const parts = view === 'back' ? BACK : FRONT;
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 200 420');
@@ -60,13 +64,31 @@ export function renderBody(view, scores, { onZone, width = 130, selected = null,
   }
   const focusable = new Set();
 
+  // Hachures de la zone choisie : pas et épaisseur calculés pour rester fins à l'écran, quelle que soit la taille.
+  const hatchId = `body-hatch-${++uid}`;
+  if (selected !== null) {
+    const gap = 600 / width;
+    const defs = document.createElementNS(NS, 'defs');
+    const pat = document.createElementNS(NS, 'pattern');
+    for (const [k, v] of Object.entries({ id: hatchId, width: gap, height: gap, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' })) pat.setAttribute(k, String(v));
+    const bg = document.createElementNS(NS, 'rect');
+    bg.setAttribute('width', String(gap)); bg.setAttribute('height', String(gap)); bg.setAttribute('class', `bz-hatch-bg ${mark}`);
+    const line = document.createElementNS(NS, 'line');
+    for (const [k, v] of Object.entries({ x1: 0, y1: 0, x2: 0, y2: gap })) line.setAttribute(k, String(v));
+    line.setAttribute('stroke-width', String(240 / width)); line.setAttribute('class', `bz-hatch-line ${mark}`);
+    pat.append(bg, line); defs.append(pat); svg.append(defs);
+  }
+
   for (const p of parts) {
     for (const mirrored of p.mirror ? [false, true] : [false]) {
       const el = document.createElementNS(NS, p.tag);
       for (const [k, v] of Object.entries(p.a)) el.setAttribute(k, String(v));
       if (mirrored) el.setAttribute('transform', MIRROR);
-      const level = p.z === null ? 'none' : bucket(scores[p.z]);
-      el.setAttribute('class', `bz bz-${level}${p.z !== null && p.z === selected ? ' bz-sel' : ''}`);
+      // 'free' : tête, mains… (papier) ; 'none' : zone pas encore mesurée (gris) ; 0 à 3 : score.
+      const level = p.z === null ? 'free' : bucket(scores[p.z]);
+      const isSel = p.z !== null && p.z === selected;
+      el.setAttribute('class', `bz bz-${level}${isSel ? ' bz-sel' : ''}`);
+      if (isSel) el.style.fill = `url(#${hatchId})`;
       if (p.z !== null && onZone) {
         el.dataset.zone = String(p.z);
         el.classList.add('bz-link');

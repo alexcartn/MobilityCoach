@@ -235,7 +235,7 @@ async function renderMob(root, m) {
     ),
 
     h('section', { class: 'fact-card', 'aria-label': 'En un coup d\'œil' },
-      h('div', { class: 'mini-body' }, renderBody(viewOf(m.zone), {}, { selected: m.zone, width: 68, decorative: true })),
+      h('div', { class: 'mini-body' }, renderBody(viewOf(m.zone), {}, { selected: m.zone, mark: 'accent', width: 68, decorative: true })),
       h('div', { class: 'facts' },
         fact('Temps', `${duration(m)} · ${minutes} min avec la mise en place`),
         fact('Matériel', m.tools.length

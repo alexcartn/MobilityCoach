@@ -507,14 +507,17 @@ body.no-nav #toast { bottom: var(--space-lg); }
 }
 .bullets { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: var(--space-xs); }
 
-/* Index des fiches : la silhouette et la zone choisie */
-.bz { stroke: var(--bg); stroke-width: 1.4; }
+/* Index des fiches : la silhouette et la zone choisie (contour fin à l'encre, comme les schémas) */
+.bz { stroke: var(--text); stroke-width: 1.2px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.bz-free { fill: var(--surface); }
 .bz-none { fill: var(--z-none); }
 .bz-0 { fill: var(--z-0); } .bz-1 { fill: var(--z-1); } .bz-2 { fill: var(--z-2); } .bz-3 { fill: var(--z-3); }
 .bz-link { cursor: pointer; }
 .bz-link:hover { opacity: .85; }
 .bz:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
-.bz-sel { fill: var(--text); stroke: var(--text); stroke-width: 2; }
+.bz-sel { stroke-width: 2px; } /* le remplissage hachuré est posé en ligne par body.js */
+.bz-hatch-bg.ink { fill: var(--surface); } .bz-hatch-line.ink { stroke: var(--text); }
+.bz-hatch-bg.accent { fill: var(--accent-soft); } .bz-hatch-line.accent { stroke: var(--accent); }
 .bodies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-xs); justify-items: center; }
 .bodies figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .bodies figcaption { font-size: var(--fs-label); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
