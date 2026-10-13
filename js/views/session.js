@@ -17,7 +17,7 @@ const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 
 // #/session : la séance du jour. #/session/7 : séance ciblée sur la zone 7 ; #/session/mob/couch : une seule fiche ;
 // #/session/pain/10 : « J'ai mal ici » (zone, amont, aval). Ces séances ne touchent pas à la séance du jour.
-// Un « /library » en fin d'adresse : retour aux fiches à la fin.
+// Un « /library » en fin d'adresse : retour à la zone à la fin.
 const ROLE_TEXT = { center: 'sur la douleur', up: 'amont', down: 'aval' };
 
 export async function render(root, params = []) {
@@ -312,7 +312,7 @@ export async function render(root, params = []) {
           h('p', { class: 'small' }, 'Refais le test de la position que tu voulais améliorer : as-tu gagné en amplitude ou en stabilité ? Sans changement visible, la zone n\'était peut-être pas la bonne.'),
         ),
         h('div', { class: 'btn-row stretch' },
-          h('a', { class: 'btn primary big', href: backHref }, single ? 'Retour à la fiche' : pain ? 'Retour au plan' : fromLibrary ? 'Retour aux fiches' : 'Retour'),
+          h('a', { class: 'btn primary big', href: backHref }, single ? 'Retour à la fiche' : pain ? 'Retour au plan' : fromLibrary ? 'Retour à la zone' : 'Retour'),
           h('a', { class: 'btn big', href: '#/progress' }, 'Mon suivi'),
         ),
       ),

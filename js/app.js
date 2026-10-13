@@ -14,7 +14,7 @@ import { initTheme } from './theme.js';
 import './install.js';
 
 const routes = { today, library, progress, session, bilan, profil, zone, retest, pain, stats, settings: settingsView };
-const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', progress: 'Suivi', session: 'Séance', bilan: 'Bilan', profil: 'Profil', zone: 'Zone', retest: 'Re-test', pain: 'J\'ai mal ici', stats: 'Statistiques', settings: 'Réglages' };
+const TITLES = { today: 'Aujourd\'hui', library: 'Corps', progress: 'Suivi', session: 'Séance', bilan: 'Bilan', profil: 'Profil', zone: 'Zone', retest: 'Re-test', pain: 'J\'ai mal ici', stats: 'Statistiques', settings: 'Réglages' };
 // Écrans de parcours : pas de barre d'onglets, l'onglet d'origine reste allumé quand elle revient.
 const TAB_OF = { session: 'today', bilan: 'progress', profil: 'progress', zone: 'progress', retest: 'progress', pain: 'library', stats: 'progress', settings: 'progress' };
 const NO_NAV = new Set(['session', 'bilan', 'profil', 'zone', 'retest', 'pain']);
