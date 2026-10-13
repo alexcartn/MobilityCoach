@@ -395,17 +395,28 @@ button.row { cursor: pointer; }
 .frame { margin: 0; }
 .frame figcaption { font-size: var(--fs-sm); color: var(--muted); padding: var(--space-xs) 2px 0; }
 .fig { display: block; width: 100%; height: auto; background: var(--surface); border-radius: var(--r-md); }
-.fig .env { stroke: var(--line-strong); stroke-width: 1.5; fill: none; stroke-linecap: round; }
-.fig .env.wall { stroke: var(--muted); }
-.fig .env-fill { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1.2; }
-.fig .limb { fill: none; stroke: var(--text); stroke-linecap: round; stroke-linejoin: round; }
-.fig .far { opacity: .5; }
-.fig .head { fill: var(--surface); stroke: var(--text); stroke-width: 2.5; }
-.fig .focus { fill: var(--accent); opacity: .3; }
-.fig .tool { fill: var(--accent); stroke: var(--text); stroke-width: 1; }
-.fig .roller { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
-.fig .band, .fig .arrow { stroke: var(--accent); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+/* Décor : sol et mur hachurés. */
+.fig .env { stroke: var(--text); stroke-width: 1.1; fill: none; stroke-linecap: round; }
+.fig .env-tick { stroke: var(--muted); stroke-width: .8; fill: none; stroke-linecap: round; }
+.fig .env-fill { fill: var(--surface-2); stroke: var(--text); stroke-width: 1; }
+.fig .env-top { stroke: var(--muted); stroke-width: .8; }
+/* Corps : contour fin à l'encre ; le côté éloigné est grisé. */
+.fig .b-far { fill: var(--surface-2); stroke: var(--muted); stroke-width: 2; paint-order: stroke; stroke-linejoin: round; }
+.fig .b-near, .fig .b-head { fill: var(--surface); stroke: var(--text); stroke-width: 2.2; paint-order: stroke; stroke-linejoin: round; }
+/* Zone travaillée : hachures fauves, découpées par le corps. */
+.fig .hl-base { fill: var(--accent); opacity: .28; }
+.fig .hatch-line { stroke: var(--accent); stroke-width: 1.1; }
+.fig .hl-edge { fill: none; stroke: var(--accent); stroke-width: 1; }
+/* Accessoires. */
+.fig .ball { fill: var(--accent); stroke: var(--text); stroke-width: 1.1; }
+.fig .ball-seam { fill: none; stroke: var(--text); stroke-width: .7; opacity: .55; }
+.fig .roller { fill: var(--accent-soft); stroke: var(--text); stroke-width: 1.1; }
+.fig .roller-core { fill: none; stroke: var(--text); stroke-width: .8; }
 .fig .bar { stroke: var(--accent-soft); stroke-linecap: round; }
+.fig .band { stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; }
+.fig .band-end { fill: var(--surface); stroke: var(--text); stroke-width: 1.1; }
+.fig .band-loop { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.fig .arrow { stroke: var(--accent); stroke-width: 2.4; fill: none; stroke-linecap: round; }
 .fig .arrow-head { fill: var(--accent); }
 
 /* ---------- Aujourd'hui ---------- */
