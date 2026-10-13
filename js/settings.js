@@ -1,0 +1,17 @@
+import * as store from './store.js';
+
+export const DEFAULTS = {
+  contexts: [],
+  sports: [],
+  duration: 15,
+  equipment: ['ball', 'roller', 'band', 'box'],
+};
+
+export async function loadSettings() {
+  const saved = await store.get('settings', {});
+  return { ...DEFAULTS, ...saved };
+}
+
+export async function saveSettings(settings) {
+  await store.set('settings', settings);
+}

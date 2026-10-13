@@ -1,0 +1,8 @@
+# Le livre ne doit jamais entrer dans le repo (ni être servi par Pages)
+*.epub
+*.pdf
+*.mobi
+*.azw3
+
+node_modules/
+.DS_Store

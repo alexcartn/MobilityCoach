@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Supple Leopard</title>
+<meta name="description" content="Coach de mobilité inspiré de Becoming a Supple Leopard : routines, tests et suivi, hors ligne.">
+<meta name="theme-color" content="#faf6ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14110e" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <img src="icons/icon.svg" alt="" width="28" height="28">
+  <span class="brand">Supple Leopard</span>
+</header>
+
+<main id="view" tabindex="-1"></main>
+
+<nav class="tabbar" aria-label="Navigation principale">
+  <a href="#/today" data-route="today">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3v3M16 3v3M5 5h14a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM4 9h16"/></svg>
+    <span>Aujourd'hui</span>
+  </a>
+  <a href="#/library" data-route="library">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/></svg>
+    <span>Fiches</span>
+  </a>
+  <a href="#/principles" data-route="principles">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h13a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H7a2 2 0 0 1-2-2zM5 18a2 2 0 0 1 2-2h12"/></svg>
+    <span>Principes</span>
+  </a>
+  <a href="#/progress" data-route="progress">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>
+    <span>Suivi</span>
+  </a>
+</nav>
+
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<noscript><p style="padding:16px">Cette application a besoin de JavaScript.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
