@@ -27,12 +27,13 @@ export async function render(root) {
   let tipIndex = 0;
   let editing = false;
 
+  const eqCount = h('span', { class: 'hint' }, `${s.equipment.length} sur ${EQUIPMENT.length}`);
   const heroTitle = h('h2', { id: 'seance-t' });
   const ringValue = h('b');
   const heroTags = h('div', { class: 'hero-tags' });
   const heroList = h('ol', { class: 'hero-list' });
   const heroNote = h('p', { class: 'hero-note' });
-  const startBtn = h('a', { class: 'btn primary big', role: 'button' }, icon('play', 18), 'Démarrer la séance');
+  const startBtn = h('a', { class: 'btn primary big', role: 'button' }, 'Démarrer la séance');
   const editBtn = h('button', { type: 'button', class: 'btn light', 'aria-expanded': 'false', 'aria-controls': 'edit-panel' }, 'Modifier');
   const editPanel = h('section', { class: 'card edit-panel', id: 'edit-panel', hidden: true, 'aria-label': 'Modifier ma séance' });
   const sportsBox = h('div');
@@ -172,14 +173,14 @@ export async function render(root) {
       .flatMap((c) => c.tips.map((t) => ({ context: c.label, text: t })));
     tipBox.replaceChildren();
     if (!tips.length) {
-      tipBox.append(h('p', { class: 'card hint' }, 'Choisis au moins un contexte pour afficher des conseils adaptés.'));
+      tipBox.append(h('p', { class: 'hint' }, 'Choisis un contexte pour voir des conseils adaptés.'));
       return;
     }
     tipIndex = Math.min(tipIndex, tips.length - 1);
     const tip = tips[tipIndex];
     const go = (d) => { tipIndex = (tipIndex + d + tips.length) % tips.length; paintTips(); };
     tipBox.append(
-      h('article', { class: 'card tip', 'aria-live': 'polite' },
+      h('article', { class: 'tip', 'aria-live': 'polite' },
         h('span', { class: 'tip-tag' }, tip.context),
         h('p', { class: 'tip-text' }, tip.text),
         h('div', { class: 'tip-foot' },
@@ -249,7 +250,7 @@ export async function render(root) {
           h('span', { class: 'hero-label' }, 'Ma séance du jour'),
           heroTitle,
         ),
-        h('div', { class: 'ring', 'aria-label': 'Durée de la séance en minutes' }, ringValue, h('span', null, 'min')),
+        h('div', { class: 'hero-dur', role: 'img', 'aria-label': 'Durée de la séance en minutes' }, ringValue, h('span', null, 'min')),
       ),
       heroTags,
       heroList,
@@ -268,12 +269,9 @@ export async function render(root) {
         options: CONTEXTS.map((c) => ({ id: c.id, label: c.label })),
         selected: s.contexts,
         label: 'Contextes actifs',
-        className: 'tiles',
-        itemClass: 'tile',
-        render: (o) => [
-          h('span', { class: 'tile-top' }, icon(CONTEXT_ICONS[o.id], 26), h('span', { class: 'check' }, icon('check', 14))),
-          h('span', { class: 'tile-label' }, o.label),
-        ],
+        className: 'chips',
+        itemClass: 'chip ctx',
+        render: (o) => [icon(CONTEXT_ICONS[o.id], 20), o.label],
         onChange: (v) => { tipIndex = 0; save({ contexts: v }); },
       }),
       warnBox,
@@ -295,13 +293,16 @@ export async function render(root) {
       h('p', { class: 'hint' }, 'Le livre vise 15 à 20 minutes par jour, qu\'on peut répartir en petites doses.'),
     ),
 
-    h('section', { class: 'section' },
-      h('h2', { class: 'section-title' }, 'Matériel à disposition'),
+    h('details', { class: 'fold' },
+      h('summary', null,
+        h('span', { class: 'section-title' }, 'Matériel à disposition'),
+        eqCount,
+        icon('chevronDown', 20, 'chev')),
       chipGroup({
         options: EQUIPMENT,
         selected: s.equipment,
         label: 'Matériel',
-        onChange: (v) => save({ equipment: v }),
+        onChange: (v) => { eqCount.textContent = `${v.length} sur ${EQUIPMENT.length}`; save({ equipment: v }); },
       }),
     ),
 

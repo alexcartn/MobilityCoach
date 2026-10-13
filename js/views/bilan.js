@@ -100,7 +100,6 @@ export async function render(root, params = []) {
       ),
       sides,
       levels,
-      h('p', { class: 'hint' }, 'Note honnêtement : ce score sert de point de départ, pas de jugement.'),
       i > 0 ? h('button', { type: 'button', class: 'btn ghost-link', style: 'align-self:flex-start', onClick: () => { i -= 1; side = 'l'; persist(); paintTest(); } }, 'Test précédent') : null,
       h('div', { class: 'bottom-bar' }, h('div', null,
         h('button', {

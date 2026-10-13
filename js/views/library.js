@@ -51,7 +51,7 @@ async function renderIndex(root, initialZone) {
   let view = selected ? viewOf(selected) : 'front';
   let query = '';
 
-  const bodyBox = h('section', { class: 'card body-card', 'aria-labelledby': 'body-t' });
+  const bodyBox = h('section', { class: 'body-card', 'aria-label': 'Silhouette du corps' });
   const panelBox = h('div', { 'aria-live': 'polite' });
   const browse = h('div', { class: 'section', style: 'gap:14px' }, bodyBox, panelBox);
   const results = h('div', { class: 'section', style: 'gap:20px' });
@@ -72,7 +72,6 @@ async function renderIndex(root, initialZone) {
     const picks = zonesInView(view).map((id) => ZONES.find((z) => z.id === id));
     bodyBox.replaceChildren(...[
       h('div', { class: 'head' },
-        h('h2', { id: 'body-t', class: 'card-title' }, 'Touche une zone'),
         h('div', { class: 'segmented small', role: 'group', 'aria-label': 'Face ou dos' },
           [['front', 'Face'], ['back', 'Dos']].map(([id, label]) =>
             h('button', { type: 'button', 'aria-pressed': String(view === id), onClick: () => { view = id; paintBody(); } }, label))),
@@ -107,7 +106,7 @@ async function renderIndex(root, initialZone) {
     const advised = mobs[0] && mobs[0].tools.every((t) => settings.equipment.includes(t)) && contextScore(mobs[0], settings.contexts) > 0 ? mobs[0].id : null;
 
     panelBox.append(
-      h('section', { class: 'card zone-panel', 'aria-labelledby': 'zp-t' },
+      h('section', { class: 'zone-panel', 'aria-labelledby': 'zp-t' },
         h('div', { class: 'zone-panel-head' },
           h('div', { class: 'section', style: 'gap:2px' },
             h('span', { class: 'eyebrow' }, zone.id === top ? `Zone ${zone.id} · ta priorité` : `Zone ${zone.id}`),
@@ -229,12 +228,12 @@ async function renderMob(root, m) {
   root.append(...[
     h('header', { class: 'page-head' },
       backLink(`#/library/${m.zone}`, zone.name),
-      h('span', { class: 'eyebrow' }, `Zone ${zone.id} · ${zone.name}`),
+      h('span', { class: 'eyebrow' }, `Zone ${zone.id}`),
       h('h1', { class: 'page-title sm' }, m.name),
       h('p', { class: 'lead' }, m.summary),
     ),
 
-    h('section', { class: 'card fact-card', 'aria-label': 'En un coup d\'œil' },
+    h('section', { class: 'fact-card', 'aria-label': 'En un coup d\'œil' },
       h('div', { class: 'mini-body' }, renderBody(viewOf(m.zone), {}, { selected: m.zone, width: 68, decorative: true })),
       h('div', { class: 'facts' },
         fact('Temps', `${duration(m)} · ${minutes} min avec la mise en place`),
@@ -258,12 +257,12 @@ async function renderMob(root, m) {
 
     h('section', { class: 'section' },
       h('h2', { class: 'section-title' }, 'Comment faire'),
-      h('ol', { class: 'card step-list' }, m.steps.map((t) => h('li', null, h('span', null, t)))),
+      h('ol', { class: 'step-list' }, m.steps.map((t) => h('li', null, h('span', null, t)))),
     ),
 
     h('section', { class: 'section' },
       h('h2', { class: 'section-title' }, 'Erreurs fréquentes'),
-      h('div', { class: 'card' }, h('ul', { class: 'bullets' }, m.faults.map((t) => h('li', null, t)))),
+      h('ul', { class: 'bullets' }, m.faults.map((t) => h('li', null, t))),
     ),
 
     h('section', { class: 'section' },

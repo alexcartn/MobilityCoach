@@ -2,12 +2,12 @@
 // Le bloc stamp est réécrit par `node tools/stamp.mjs` : ne pas l'éditer à la main.
 
 // <stamp>
-const VERSION = '2bacf50806';
+const VERSION = '1b3ac3c21c';
 const ASSETS = [
   "./",
   "css/app.css",
   "fonts/bricolage-grotesque.woff2",
-  "fonts/instrument-sans.woff2",
+  "fonts/libre-franklin.woff2",
   "icons/icon-180.png",
   "icons/icon-192.png",
   "icons/icon-512.png",

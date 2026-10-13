@@ -70,7 +70,7 @@ export async function render(root) {
       }, String(n)));
     }
     calBox.replaceChildren(
-      h('div', { class: 'card section', style: 'gap:12px', 'aria-labelledby': 'cal-t' },
+      h('div', { class: 'section', style: 'gap:12px', 'aria-labelledby': 'cal-t' },
         h('div', { class: 'cal-head' },
           h('h2', { id: 'cal-t', class: 'card-title' }, cap(fmtMonth.format(view))),
           h('div', { class: 'cal-nav' },

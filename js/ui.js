@@ -1,5 +1,8 @@
 // Petits utilitaires DOM : pas de innerHTML, tout passe par des noeuds texte.
 
+// Typographie française : espace insécable avant « : ; ? ! » et dans les guillemets, pour qu'un signe ne passe jamais seul à la ligne.
+export const fr = (t) => String(t).replace(/ ([:;?!»])/g, '\u00A0$1').replace(/« /g, '«\u00A0');
+
 export function h(tag, attrs, ...children) {
   const el = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
@@ -11,7 +14,7 @@ export function h(tag, attrs, ...children) {
   }
   for (const c of children.flat(Infinity)) {
     if (c == null || c === false) continue;
-    el.append(c.nodeType ? c : document.createTextNode(String(c)));
+    el.append(c.nodeType ? c : document.createTextNode(fr(c)));
   }
   return el;
 }

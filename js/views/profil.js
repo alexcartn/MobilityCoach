@@ -2,8 +2,6 @@ import { h, icon } from '../ui.js';
 import { renderBody } from '../body.js';
 import { loadAssessments, profile, priorities } from '../assessment.js';
 
-const CIRC = 2 * Math.PI * 40;
-
 export async function render(root) {
   const all = await loadAssessments();
   const rec = all.at(-1);
@@ -15,27 +13,6 @@ export async function render(root) {
   const gain = prev && prev.global !== null ? rec.global - prev.global : null;
   const goZone = (id) => { location.hash = `#/zone/${id}`; };
 
-  const ring = (() => {
-    const NS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 96 96');
-    svg.setAttribute('width', '96');
-    svg.setAttribute('height', '96');
-    svg.setAttribute('aria-hidden', 'true');
-    for (const cls of ['ring-track', 'ring-fill']) {
-      const c = document.createElementNS(NS, 'circle');
-      c.setAttribute('cx', '48'); c.setAttribute('cy', '48'); c.setAttribute('r', '40');
-      c.setAttribute('class', cls);
-      if (cls === 'ring-fill') {
-        c.setAttribute('stroke-dasharray', String(CIRC));
-        c.setAttribute('stroke-dashoffset', String(CIRC * (1 - rec.global / 100)));
-        c.setAttribute('transform', 'rotate(-90 48 48)');
-      }
-      svg.append(c);
-    }
-    return svg;
-  })();
-
   root.append(
     h('header', { class: 'page-head' },
       h('a', { class: 'back-link', href: '#/progress' }, icon('chevronLeft', 18), 'Suivi'),
@@ -43,19 +20,15 @@ export async function render(root) {
       h('h1', { class: 'page-title' }, 'Ton profil'),
     ),
 
-    h('section', { class: 'hero', 'aria-labelledby': 'prof-t' },
-      h('div', { class: 'hero-score' },
-        h('div', { class: 'score-ring' }, ring, h('div', { class: 'val' }, h('b', null, String(rec.global)), h('span', null, '/ 100'))),
-        h('div', null,
-          h('span', { class: 'hero-label' }, 'Profil'),
-          h('h2', { id: 'prof-t', style: 'margin-top:4px' }, prof.name),
-          gain !== null && gain !== 0 ? h('span', { class: 'chip-delta', style: gain < 0 ? 'background:var(--warn-bg);color:var(--warn-ink)' : '' }, `${gain > 0 ? '+' : ''}${gain} depuis le dernier test`) : null,
-        ),
-      ),
-      h('p', null, prof.text),
+    h('section', { class: 'score-head', 'aria-labelledby': 'prof-t' },
+      h('span', { class: 'eyebrow' }, 'Score de mobilité'),
+      h('div', { class: 'big-num' }, h('b', null, String(rec.global)), h('span', null, '/ 100')),
+      h('h2', { id: 'prof-t', class: 'page-title sm', style: 'margin-top:var(--space-xs)' }, prof.name),
+      gain !== null && gain !== 0 ? h('p', { class: 'delta-line' }, h('span', { class: gain > 0 ? 'up' : 'down' }, `${gain > 0 ? '+' : ''}${gain} depuis le dernier test`)) : null,
+      h('p', { class: 'lead', style: 'margin-top:var(--space-xs)' }, prof.text),
     ),
 
-    h('section', { class: 'card section', 'aria-labelledby': 'map-t' },
+    h('section', { class: 'section', style: 'gap:var(--space-md)', 'aria-labelledby': 'map-t' },
       h('h2', { id: 'map-t', class: 'section-title' }, 'Ton corps, zone par zone'),
       h('div', { class: 'bodies' },
         h('figure', null, renderBody('front', rec.scores, { onZone: goZone }), h('figcaption', null, 'Face')),
@@ -87,7 +60,7 @@ export async function render(root) {
 
     h('div', { class: 'section', style: 'gap:10px' },
       h('a', { class: 'btn primary big', href: '#/today' }, icon('play', 18), prev ? 'Voir ma séance' : 'Voir ma première séance'),
-      h('a', { class: 'btn big', href: '#/retest' }, icon('clock', 18), 'Planifier mon re-test'),
+      h('a', { class: 'text-link', href: '#/retest', style: 'align-self:center' }, 'Planifier mon re-test'),
     ),
   );
 }

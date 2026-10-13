@@ -102,7 +102,7 @@ export async function render(root, params = []) {
     if (started || !quickTest) return;
     testBox.append(
       h('section', { class: 'card test-card', 'aria-labelledby': 'tb-t' },
-        h('div', { class: 'head' }, h('h2', { id: 'tb-t' }, `Test avant : ${quickTest.title}`), h('span', { class: 'hint' }, 'Facultatif · tu re-testeras à la fin')),
+        h('div', { class: 'head' }, h('h2', { id: 'tb-t' }, `Avant : ${quickTest.title}`), h('span', { class: 'hint' }, 'Facultatif')),
         h('p', { class: 'small', style: 'color:var(--text-2)' }, quickTest.intro),
         scale(before, (v) => { before = v; paintBefore(); }, 'Note de la position, de 1 à 5'),
         h('div', { class: 'scale-labels' }, h('span', null, 'Très limité'), h('span', null, 'Facile')),
@@ -114,7 +114,7 @@ export async function render(root, params = []) {
     prefs.replaceChildren(
       ...[['sound', 'Son'], ['vibrate', 'Vibration']].map(([key, label]) =>
         h('button', {
-          type: 'button', class: 'chip', 'aria-pressed': String(!!settings[key]),
+          type: 'button', class: 'chip quiet', 'aria-pressed': String(!!settings[key]),
           onClick: () => { settings[key] = !settings[key]; saveSettings(settings); paintPrefs(); },
         }, label)),
     );
@@ -153,7 +153,7 @@ export async function render(root, params = []) {
     timer.textContent = mmss(secs);
     const before = steps.slice(0, i).reduce((n, s) => n + s.seconds * 1000, 0);
     const done = before + steps[i].seconds * 1000 - left;
-    barFill.style.width = `${Math.min(100, (done / (total * 1000)) * 100)}%`;
+    barFill.style.transform = `scaleX(${Math.min(1, done / (total * 1000))})`;
     bar.setAttribute('aria-valuenow', String(Math.round((done / (total * 1000)) * 100)));
     mainBtn.textContent = !started ? 'Démarrer' : running ? 'Pause' : 'Reprendre';
   }
@@ -264,7 +264,7 @@ export async function render(root, params = []) {
       const gain = before && after ? after - before : null;
       afterBox.append(
         h('section', { class: 'card test-card', 'aria-labelledby': 'ta-t' },
-          h('div', { class: 'head' }, h('h2', { id: 'ta-t' }, `Test après : ${quickTest.title}`), h('span', { class: 'hint' }, 'Facultatif')),
+          h('div', { class: 'head' }, h('h2', { id: 'ta-t' }, `Après : ${quickTest.title}`), h('span', { class: 'hint' }, 'Facultatif')),
           scale(after ?? null, async (v) => {
             await updateLastSession({ test: { id: quickTest.id, zone: testZone, before, after: v } });
             paintAfter(v);

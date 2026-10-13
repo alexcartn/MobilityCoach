@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(fileURLToPath(new URL('.', import.meta.url)), '..');
 const SKIP_DIRS = new Set(['.git', 'tools', 'node_modules']);
-const SKIP_FILES = new Set(['sw.js', 'js/version.js', 'README.md', '.gitignore', '.nojekyll']);
+const SKIP_FILES = new Set(['sw.js', 'js/version.js', 'README.md', '.gitignore', '.nojekyll', '.impeccable.md']);
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {

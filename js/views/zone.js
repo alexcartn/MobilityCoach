@@ -107,11 +107,11 @@ export async function render(root, params = []) {
       ),
       score !== null
         ? h('div', { class: 'big-score' }, h('b', null, String(score)),
-            delta !== 0 ? h('span', { class: 'chip-delta', style: delta < 0 ? 'background:var(--warn-bg);color:var(--warn-ink)' : '' }, `${delta > 0 ? '+' : ''}${delta} depuis le bilan`) : null)
+            delta !== 0 ? h('span', { class: delta < 0 ? 'down' : 'up' }, `${delta > 0 ? '+' : ''}${delta} depuis le bilan`) : null)
         : null,
     ),
 
-    h('section', { class: 'card chart-card', 'aria-labelledby': 'chart-t' },
+    h('section', { class: 'chart-card', 'aria-labelledby': 'chart-t' },
       h('div', { class: 'head' },
         h('div', { id: 'chart-t' }, chartTitle),
         h('div', { class: 'segmented small', role: 'group', 'aria-label': 'Type de graphique' }, scoreBtn, timeBtn),
@@ -119,20 +119,20 @@ export async function render(root, params = []) {
       chartBox,
     ),
 
-    h('div', { class: 'stat-grid' },
-      h('div', { class: 'stat-card' }, h('span', null, 'Temps passé'), h('b', null, seconds ? fmtDuration(seconds) : '0 min')),
-      h('div', { class: 'stat-card' }, h('span', null, 'Séances'), h('b', null, String(mine.length))),
-      h('div', { class: 'stat-card' }, h('span', null, 'Gain moyen par séance'), h('b', null, gain === null ? '–' : fmtGain(gain))),
-      h('a', { class: 'stat-card dark', href: assessments.length ? '#/retest' : '#/bilan' },
-        h('span', null, 'Prochain re-test'),
-        h('b', null, retest === null ? 'À planifier' : retest < 0 ? 'En retard' : retest === 0 ? 'Aujourd\'hui' : retest === 1 ? 'Demain' : `Dans ${retest} j`)),
+    h('ul', { class: 'list kv' },
+      h('li', null, h('span', { class: 'k' }, 'Temps passé'), h('span', { class: 'v' }, seconds ? fmtDuration(seconds) : '0 min')),
+      h('li', null, h('span', { class: 'k' }, 'Séances'), h('span', { class: 'v' }, String(mine.length))),
+      h('li', null, h('span', { class: 'k' }, 'Gain moyen par séance'), h('span', { class: 'v' }, gain === null ? '–' : fmtGain(gain))),
+      h('li', { class: 'link' }, h('a', { class: 'v-link', href: assessments.length ? '#/retest' : '#/bilan' },
+        h('span', { class: 'k' }, 'Prochain re-test'),
+        h('span', { class: 'v' }, retest === null ? 'À planifier' : retest < 0 ? 'En retard' : retest === 0 ? 'Aujourd\'hui' : retest === 1 ? 'Demain' : `Dans ${retest} j`))),
     ),
 
     h('section', { class: 'section', 'aria-labelledby': 'tests-t' },
       h('h2', { id: 'tests-t', class: 'section-title' }, 'Tests de cette zone'),
       testRows.length
         ? h('ul', { class: 'list' }, testRows)
-        : h('p', { class: 'card hint' }, 'Aucun test mesuré pour cette zone. Le bilan complet les couvre tous.'),
+        : h('p', { class: 'hint' }, 'Aucun test mesuré pour cette zone. Le bilan complet les couvre tous.'),
       weak ? h('p', { class: 'callout info' }, icon('check', 20),
         h('span', null, `Côté ${weak === 'l' ? 'gauche' : 'droit'} plus raide que l'autre : la routine lui donne 30 s de plus.`)) : null,
     ),

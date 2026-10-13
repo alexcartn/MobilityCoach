@@ -1,7 +1,7 @@
 import { h, icon } from '../ui.js';
 import { ZONES } from '../data/zones.js';
 import { getMob } from '../data/mobs.js';
-import { trendChart } from '../charts.js';
+import { lineChart } from '../charts.js';
 import { loadAssessments, loadPlan, globalSeries, zoneDelta, priorities, pickTargetTests, totalMinutes, profile, daysUntil, fromDateKey } from '../assessment.js';
 import { loadSessions, stats, dayKey } from '../sessions.js';
 import { fmtSeconds } from '../routine.js';
@@ -48,6 +48,7 @@ export async function render(root) {
   const when = (iso) => new Date(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 
   let sort = 'prio';
+  let progressLine = '';
   const zonesBox = h('ul', { class: 'list' });
   const prioBtn = h('button', { type: 'button', onClick: () => setSort('prio') }, 'À travailler');
   const gainBtn = h('button', { type: 'button', onClick: () => setSort('gain') }, 'Progrès');
@@ -75,13 +76,16 @@ export async function render(root) {
 
   // --- Bloc bilan ---------------------------------------------------------------------------
   let assessmentBlock;
+  let zonesBlock = [];
   if (!last) {
     assessmentBlock = [
-      h('section', { class: 'hero', style: 'gap:12px' },
-        h('span', { class: 'hero-label' }, 'Score de mobilité'),
-        h('h2', { style: 'font-size:24px' }, 'Ton point de départ'),
-        h('p', null, '8 tests, environ 15 minutes. Tu obtiens un score par zone, la silhouette de ta mobilité et une routine qui commence par ce qui te freine.'),
-        h('a', { class: 'btn primary big', href: '#/bilan', style: 'align-self:stretch' }, icon('play', 18), 'Commencer le bilan'),
+      h('section', { class: 'section', style: 'gap:var(--space-md)' },
+        h('div', { class: 'section', style: 'gap:var(--space-xs)' },
+          h('span', { class: 'eyebrow' }, 'Score de mobilité'),
+          h('h2', { class: 'page-title sm' }, 'Ton point de départ'),
+          h('p', { class: 'lead' }, '8 tests, environ 15 minutes. Tu obtiens un score par zone, la silhouette de ta mobilité et une routine qui commence par ce qui te freine.'),
+        ),
+        h('a', { class: 'btn primary big', href: '#/bilan' }, icon('play', 18), 'Commencer le bilan'),
       ),
     ];
   } else {
@@ -94,20 +98,19 @@ export async function render(root) {
     const d = plan?.date ? fromDateKey(plan.date) : null;
     const planIds = plan ? (plan.type === 'full' ? null : pickTargetTests(last.scores)) : null;
     const prios = priorities(last.scores, 2).map((p) => p.name.toLowerCase());
+    progressLine = series.length > 1 ? `${progressing} zone${progressing > 1 ? 's' : ''} sur ${measured.length} en progrès depuis le bilan` : '';
 
     assessmentBlock = [
-      h('section', { class: 'hero', style: 'gap:12px', 'aria-labelledby': 'sc-t' },
-        h('div', { class: 'sc-top', style: 'display:flex;justify-content:space-between;align-items:flex-start;gap:12px' },
-          h('div', null,
-            h('span', { class: 'hero-label', id: 'sc-t' }, 'Score de mobilité'),
-            h('div', { style: 'display:flex;align-items:baseline;gap:10px;margin-top:2px' },
-              h('b', { style: 'font-family:var(--font-display);font-size:48px;font-weight:750;letter-spacing:-.03em;line-height:1' }, String(last.global)),
-              gain !== null ? h('span', { style: 'font-size:13px;font-weight:700;color:var(--accent)' }, `${gain > 0 ? '+' : ''}${gain} ${since(series[0].at, series.at(-1).at)}`) : null),
-          ),
-          h('span', { class: 'hero-tag' }, prof.name),
+      h('section', { class: 'section', 'aria-labelledby': 'sc-t' },
+        h('div', { class: 'score-head' },
+          h('span', { class: 'eyebrow', id: 'sc-t' }, 'Score de mobilité'),
+          h('div', { class: 'big-num' }, h('b', null, String(last.global)), h('span', null, '/ 100')),
+          h('p', { class: 'delta-line' },
+            gain !== null && gain !== 0 ? [h('span', { class: gain > 0 ? 'up' : 'down' }, `${gain > 0 ? '+' : ''}${gain} ${since(series[0].at, series.at(-1).at)}`), ' · '] : null,
+            prof.name),
         ),
-        trendChart(series, `Score global : ${series.map((p) => p.value).join(', ')}`),
-        h('a', { href: '#/profil', style: 'color:var(--hero-text);font-weight:650;font-size:14px' }, 'Voir mon profil et la silhouette'),
+        lineChart(series, `Score global : ${series.map((p) => p.value).join(', ')}`),
+        h('a', { class: 'text-link', href: '#/profil' }, 'Voir ma silhouette et mon profil', icon('arrowRight', 18)),
       ),
 
       plan?.date
@@ -118,49 +121,49 @@ export async function render(root) {
               h('span', null, planIds ? `${planIds.length} tests · ${prios.join(' et ')} · ${totalMinutes(planIds)} min` : `Bilan complet · ${totalMinutes(['squat', 'overhead', 'reachback', 'wrist', 'hinge', 'couch', 'kneeflex', 'ankle'])} min`)),
             icon('chevronRight', 18))
         : h('a', { class: 'banner', href: '#/retest' },
-            h('span', { class: 'cal-icon' }, icon('clock', 22)),
+            h('span', { class: 'cal-icon' }, icon('clock', 24)),
             h('span', { class: 'txt' }, h('b', null, 'Planifier mon re-test'), h('span', null, 'Pour voir ce qui a changé')),
             icon('chevronRight', 18)),
-
-      h('div', { class: 'stat-grid three' },
-        h('div', { class: 'stat-card' }, h('b', null, `${Math.round(st.weekSeconds / 60)} min`), h('span', null, 'sur 7 jours')),
-        h('div', { class: 'stat-card' }, h('b', null, String(sessions.length)), h('span', null, sessions.length > 1 ? 'séances' : 'séance')),
-        h('div', { class: 'stat-card' }, h('b', null, `${progressing} / ${measured.length}`), h('span', null, 'zones en progrès')),
-      ),
-
-      h('section', { class: 'section', style: 'gap:10px', 'aria-labelledby': 'zones-t' },
+    ];
+    zonesBlock = [
+      h('section', { class: 'section', style: 'gap:var(--space-xs)', 'aria-labelledby': 'zones-t' },
         h('div', { class: 'section-head' },
           h('h2', { id: 'zones-t', class: 'section-title' }, 'Zone par zone'),
           h('div', { class: 'segmented small', role: 'group', 'aria-label': 'Trier les zones' }, prioBtn, gainBtn),
         ),
-        zonesBox,
+        progressLine ? h('p', { class: 'hint' }, progressLine) : null,
+        h('div', { style: 'margin-top:var(--space-xs)' }, zonesBox),
       ),
     ];
   }
 
+  const weekSection =
+      h('section', { class: 'section', 'aria-labelledby': 'week-t' },
+        h('div', { class: 'section-head' },
+          h('h2', { id: 'week-t', class: 'section-title' }, 'Cette semaine'),
+          h('span', { class: 'hint' }, `${week.filter((x) => x.done).length} jour${week.filter((x) => x.done).length > 1 ? 's' : ''} sur 7 · ${Math.round(st.weekSeconds / 60)} min`),
+        ),
+        weekStrip(week),
+      );
+
   root.append(
-    h('header', { class: 'page-head', style: 'flex-direction:row;align-items:flex-end;justify-content:space-between;gap:12px' },
+    h('header', { class: 'page-head suivi-head' },
       h('h1', { class: 'page-title' }, 'Suivi'),
-      h('div', { style: 'display:flex;align-items:center;gap:8px' },
-        h('span', { class: 'hero-tag', style: 'background:var(--surface);color:var(--text);border:1px solid var(--line);display:inline-flex;align-items:center;gap:6px;padding:6px 12px 6px 8px;font-size:13px' },
-          icon('flame', 18), `${st.streak} jour${st.streak > 1 ? 's' : ''} d'affilée`),
+      h('div', { class: 'right' },
+        h('span', { class: 'streak' }, icon('flame', 18), `${st.streak} jour${st.streak > 1 ? 's' : ''} d'affilée`),
         h('a', { class: 'icon-btn', href: '#/settings', 'aria-label': 'Réglages' }, icon('sliders')),
       ),
     ),
     ...assessmentBlock,
-
-    h('section', { class: 'card section', 'aria-labelledby': 'week-t' },
-      h('div', { class: 'section-head' },
-        h('h2', { id: 'week-t', style: 'font-family:var(--font-body);font-size:15px;font-weight:700' }, 'Cette semaine'),
-        h('span', { class: 'hint' }, `${week.filter((x) => x.done).length} / 7 jours`),
-      ),
-      weekStrip(week),
-    ),
+    weekSection,
+    ...zonesBlock,
 
     sessions.length
-      ? h('section', { class: 'section', style: 'gap:10px' },
-          h('h2', { class: 'section-label' }, 'Dernières séances'),
-          h('ul', { class: 'list' }, history.map((e) =>
+      ? h('section', { class: 'section', style: 'gap:var(--space-xs)' },
+          h('div', { class: 'section-head' },
+            h('h2', { class: 'section-title' }, 'Dernières séances'),
+            h('span', { class: 'hint' }, `${sessions.length} au total`)),
+          h('ul', { class: 'list', style: 'margin-top:var(--space-xs)' }, history.map((e) =>
             h('li', { class: 'row' },
               h('span', { class: 'row-text' },
                 h('span', { class: 'row-title' }, when(e.at)),
@@ -169,10 +172,10 @@ export async function render(root) {
               h('span', { class: 'hint' }, fmtSeconds(Math.round(e.seconds / 10) * 10)),
             ))),
         )
-      : h('section', { class: 'card' },
-          h('h3', null, 'Aucune séance pour l\'instant'),
-          h('p', { class: 'hint', style: 'margin-top:4px' }, 'Lance une séance depuis Aujourd\'hui : elle apparaîtra ici.'),
-          h('a', { class: 'btn primary', href: '#/today', style: 'margin-top:12px' }, 'Préparer ma séance')),
+      : h('section', { class: 'section', style: 'gap:var(--space-xs)' },
+          h('h2', { class: 'section-title' }, 'Aucune séance pour l\'instant'),
+          h('p', { class: 'hint' }, 'Lance une séance depuis Aujourd\'hui : elle apparaîtra ici.'),
+          h('a', { class: 'btn primary', href: '#/today', style: 'align-self:flex-start;margin-top:var(--space-xs)' }, 'Préparer ma séance')),
   );
   if (last) setSort('prio');
 }
