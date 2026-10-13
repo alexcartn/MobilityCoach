@@ -155,7 +155,7 @@ export const LOWER = [
         caption: 'Buste penché, dos plat, mains sur un banc, la jambe se plie puis se tend.',
         torso: -15, head: -20,
         legs: [{ thigh: 80, shin: 95, foot: 0 }, { thigh: 70, shin: 105, foot: 0 }],
-        arms: [{ upper: 88, fore: 92 }],
+        arms: [{ upper: 88, fore: 88 }],
         props: [
           { t: 'box', at: ['hand', -13, 0], w: 26, h: 29 },
           { t: 'focus', at: ['hip', 0, 2], r: 13 },
@@ -194,7 +194,7 @@ export const LOWER = [
       {
         caption: 'Allongé, hanche pliée, mains derrière la cuisse, le genou se tend.',
         torso: 200, head: 195,
-        legs: [{ thigh: -82, shin: -88, foot: -20 }, { thigh: 0, shin: 0, foot: -80 }],
+        legs: [{ thigh: -82, shin: -80, foot: -20 }, { thigh: 0, shin: 0, foot: -80 }],
         arms: [{ upper: -5, fore: -5 }],
         props: [{ t: 'focus', at: ['thigh', 0, 0], r: 12 }],
       },
@@ -266,8 +266,8 @@ export const LOWER = [
       {
         caption: 'Assis, balle dans le creux du genou, talon vers la fesse, mains qui tirent la jambe.',
         torso: -105, head: -108,
-        legs: [{ thigh: -55, shin: 150, foot: 90 }, { thigh: 0, shin: 0, foot: -80 }],
-        arms: [{ upper: 60, fore: -20 }],
+        legs: [{ thigh: -70, shin: 75, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }],
+        arms: [{ upper: 71, fore: -43 }],
         props: [
           { t: 'ball', at: ['knee', -3, 4] },
           { t: 'focus', at: ['knee', -3, 3], r: 12 },
@@ -303,7 +303,7 @@ export const LOWER = [
         caption: 'Assis sur les talons, serviette roulée derrière le genou, mains sur le tibia.',
         torso: -85, head: -88,
         legs: [{ thigh: 20, shin: 177, foot: 180 }, { thigh: 22, shin: 177, foot: 180 }],
-        arms: [{ upper: 70, fore: 150 }],
+        arms: [{ upper: 98, fore: 90 }],
         props: [
           { t: 'ball', at: ['knee', -6, 0], r: 3.2 },
           { t: 'focus', at: ['knee', -4, 0], r: 12 },
@@ -339,8 +339,8 @@ export const LOWER = [
       {
         caption: 'Assis, genou plié, balle sur l\'intérieur du tibia, appui des deux mains.',
         torso: -70, head: -72,
-        legs: [{ thigh: -55, shin: 105, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }],
-        arms: [{ upper: 80, fore: 100 }],
+        legs: [{ thigh: -50, shin: 85, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }],
+        arms: [{ upper: 119, fore: 14 }],
         props: [
           { t: 'ball', at: ['shin', -4, -3] },
           { t: 'focus', at: ['shin', 0, 0], r: 12 },

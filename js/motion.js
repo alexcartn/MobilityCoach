@@ -80,7 +80,9 @@ export function orientation(frame) {
 const unionBox = (a, b) => ({ x0: Math.min(a.x0, b.x0), x1: Math.max(a.x1, b.x1), y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1) });
 
 // spec : { frames: [poseA, poseB], period, rigidArms?, anchor?, slide?: { angle, from, to }, hands?, feet?, still?: [types],
-//          stillEnds?: { band: ['to'] }, refS? }
+//          stillEnds?: { band: ['to'] }, refS?, grip? }
+// grip : nom d'une articulation de la jambe ('knee', 'shin'…) que les mains tiennent en la suivant.
+// hands, feet : true (les deux côtés) ou [''] (le côté proche seul, '2' pour l'autre).
 // hands : true (les mains restent posées, le coude se plie) ou 'forearm' (l'avant-bras reste posé aussi : le bras pivote
 // autour du coude, comme sur un rouleau avec appui sur les avant-bras).
 export function makeAnimation(spec, facing = 1) {
@@ -106,16 +108,17 @@ export function makeAnimation(spec, facing = 1) {
   const flex = flexOf(spec.dir ?? 1);
   const J0 = base(refS).J; // l'état de référence : là où se posent les mains, les pieds, le rouleau et le mur
   const ks = ['', '2'];
-  const hands = spec.hands ? ks.map((k) => ({ k, H: J0['hand' + k], E: J0['elbow' + k] })) : null;
-  const feet = spec.feet ? ks.map((k) => ({ k, A: J0['ankle' + k] })) : null;
+  const side = (opt) => (Array.isArray(opt) ? ks.filter((k) => opt.includes(k)) : opt ? ks : []); // true : les deux côtés ; [''] : le côté proche seul
+  const hands = side(spec.hands).map((k) => ({ k, H: J0['hand' + k], E: J0['elbow' + k] }));
+  const feet = side(spec.feet).map((k) => ({ k, A: J0['ankle' + k] }));
 
   function solve(s) {
     const { pose, J } = base(s);
-    for (const { k, H, E } of hands ?? []) {
+    for (const { k, H, E } of hands) {
       J['elbow' + k] = spec.hands === 'forearm' ? E : twoBone(J.shoulder, H, L.upper, L.fore, flex.elbow, E);
       J['hand' + k] = H;
     }
-    for (const { k, A } of feet ?? []) {
+    for (const { k, A } of feet) {
       const toe = [J['toe' + k][0] - J['ankle' + k][0], J['toe' + k][1] - J['ankle' + k][1]]; // le pied garde son angle
       const knee = twoBone(J.hip, A, L.thigh, L.shin, flex.knee, J0['knee' + k]);
       J['knee' + k] = knee;
@@ -123,6 +126,12 @@ export function makeAnimation(spec, facing = 1) {
       J['toe' + k] = [A[0] + toe[0], A[1] + toe[1]];
       J['thigh' + k] = mid(J.hip, knee);
       J['shin' + k] = mid(knee, A);
+    }
+    if (spec.grip) { // les mains tiennent une articulation de la jambe (le genou, le tibia) et la suivent
+      for (const k of ks) {
+        J['elbow' + k] = twoBone(J.shoulder, J[spec.grip], L.upper, L.fore, flex.elbow, J0['elbow' + k]);
+        J['hand' + k] = J[spec.grip];
+      }
     }
     return { pose, J };
   }

@@ -236,8 +236,8 @@ export const LOWERLEG = [
       {
         caption: 'Assis, balle bloquée sur la cheville, un coup sec avec l\'autre main.',
         torso: -60, head: -68,
-        legs: [{ thigh: -55, shin: 105, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }],
-        arms: [{ upper: 70, fore: 100 }],
+        legs: [{ thigh: -50, shin: 85, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }],
+        arms: [{ upper: 115, fore: 46 }],
         props: [
           { t: 'ball', at: ['ankle', 4, -4] },
           { t: 'focus', at: ['ankle', 3, -2], r: 11 },

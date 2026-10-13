@@ -156,7 +156,7 @@ export const UPPER = [
         caption: 'Assis droit, main dans le dos, l\'autre main tire le coude vers le centre.',
         torso: -90, head: -90,
         legs: [{ thigh: 0, shin: 90, foot: 0 }],
-        arms: [{ upper: 112, fore: 80 }, { upper: 60, fore: 175 }],
+        arms: [{ upper: 112, fore: 80 }, { upper: 166, fore: 49 }],
         props: [
           { t: 'box', at: ['hip', -14, 0], w: 38, h: 26 },
           { t: 'focus', at: ['shoulder', -3, 4], r: 11 },

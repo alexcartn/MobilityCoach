@@ -4,12 +4,13 @@
 //   period     durée d'une boucle, en secondes : lent, avec une courte tenue à chaque bout
 //   anchor     articulation clouée au sol
 //   slide      le corps glisse le long de `angle` (degrés), de `from` à `to` (unités du schéma)
-//   hands      les mains restent posées là où elles sont dans la pose de référence
-//   feet       les pieds restent posés
+//   hands      les mains restent posées là où elles sont dans la pose de référence (true, ou [''] pour le côté proche seul)
+//   feet       les pieds restent posés (idem)
 //   still      types d'accessoires immobiles (le rouleau, le mur, la balle, la boîte ne suivent pas le corps)
 //   stillEnds  extrémités immobiles d'une bande
 //   refS       avancement (0 à 1) de la pose de référence ; 0,5 pour un va-et-vient centré
 //   begin      remplace des champs de l'image 1 pour le départ (continuité des angles : -185 plutôt que 175)
+//   grip       les mains tiennent une articulation de la jambe ('knee', 'shin') et la suivent
 //   rigidArms  les bras tournent avec le buste (bras croisés, bras tendus au-dessus de la tête)
 //   faces      'left' si l'orientation lue dans la pose est fausse (sinon elle est déduite des articulations pliées)
 
@@ -131,4 +132,107 @@ export const MOTIONS = {
     period: 6, still: TOOLS,
     end: { legs: [{ thigh: -125, shin: 25, foot: 0 }, { thigh: -10, shin: -2, foot: -70 }] },
   },
+
+  // ---- Hanches (zones 6, 7 et 8) ----
+  // Genou arrière au sol, pied avant posé : tout le corps avance au-dessus du genou, buste droit.
+  banded_hip_ext: {
+    period: 6, anchor: 'knee', feet: true, still: TOOLS, stillEnds: { band: ['to'] },
+    end: { legs: [{ thigh: 116, shin: 180, foot: 180 }, { thigh: 8, shin: 90, foot: 0 }] },
+  },
+
+  // Pied avant posé, les hanches reculent vers l'arrière de la hanche, buste plus penché ; la jambe arrière glisse.
+  single_leg_flexion: { period: 6, slide: { angle: 180, from: 0, to: 8 }, feet: [''], hands: true, end: { torso: -34, head: -44 } },
+  hip_flexion_box: { period: 6, slide: { angle: 180, from: 0, to: 7 }, feet: [''], hands: true, still: TOOLS, end: { torso: -28, head: -38 } },
+
+  // Le buste s'incline plus en avant, dos plat, les mains restent sur le pied et le genou.
+  hip_er_box: { period: 6, anchor: 'hip', hands: true, still: TOOLS, end: { torso: -12, head: -22 } },
+  executive_hip: { period: 6, anchor: 'hip', hands: true, still: TOOLS, end: { torso: -36, head: -44 } },
+
+  // La fente descend : les hanches vont vers le bas et l'avant, les pieds restent posés.
+  banded_hip_lunge: { period: 6, slide: { angle: 70, from: 0, to: 8 }, feet: true, still: TOOLS, stillEnds: { band: ['to'] } },
+
+  // Le genou arrière dans l'angle du mur, le buste se redresse (comme le couch).
+  super_couch: { period: 6, anchor: 'knee', still: ['wall'], stillEnds: { band: ['to'] }, end: { torso: -90, head: -90, arms: [{ upper: 110, fore: 60 }] } },
+
+  // Le genou arrière est d'abord au sol ; le pied glisse vers l'arrière jusqu'à tendre la jambe.
+  trailing_leg_ext: {
+    period: 7, slide: { angle: 90, from: 10, to: 0 }, feet: [''], still: TOOLS, stillEnds: { band: ['to'] },
+    begin: { legs: [{ thigh: 15, shin: 105, foot: 0 }, { thigh: 100, shin: 180, foot: 180 }] },
+    end: { legs: [{ thigh: 15, shin: 105, foot: 0 }, { thigh: 140, shin: 140, foot: 130 }] },
+  },
+
+  // ---- Arrière de cuisse et genou (zones 9 et 10) ----
+  // Assis, balle sous la cuisse : la jambe se tend puis se plie.
+  hamstring_ball: {
+    period: 6, still: TOOLS,
+    begin: { legs: [{ thigh: 0, shin: 8, foot: -45 }, { thigh: 0, shin: 90, foot: 0 }] },
+    end: { legs: [{ thigh: 0, shin: 90, foot: 0 }, { thigh: 0, shin: 90, foot: 0 }] },
+  },
+
+  // Penché à dos plat, mains sur le banc : les fesses reculent, les genoux plient puis se tendent.
+  hamstring_floss: { period: 6, slide: { angle: 110, from: 0, to: 6 }, feet: true, hands: true, still: TOOLS },
+  posterior_chain_floss: { period: 6, slide: { angle: 110, from: 0, to: 6 }, feet: true, hands: true, still: TOOLS, stillEnds: { band: ['to'] } },
+
+  // Pied sur la boîte : les hanches reculent, la jambe se tend.
+  posterior_chain_box: { period: 6, slide: { angle: 180, from: 0, to: 8 }, feet: [''], hands: true, still: TOOLS, stillEnds: { band: ['to'] } },
+
+  // Allongé, hanche pliée : le genou se plie puis se tend vers le plafond, les mains tiennent la cuisse ou la bande.
+  hamstring_supine: {
+    period: 6,
+    begin: { legs: [{ thigh: -82, shin: 8, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }] },
+    end: { legs: [{ thigh: -82, shin: -80, foot: -20 }, { thigh: 0, shin: 0, foot: -80 }] },
+  },
+  hamstring_band_supine: {
+    period: 6, still: TOOLS,
+    begin: { legs: [{ thigh: -82, shin: 8, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }] },
+    end: { legs: [{ thigh: -82, shin: -80, foot: -20 }, { thigh: 0, shin: 0, foot: -80 }] },
+  },
+
+  // Balle dans le creux du genou : le talon se rapproche de la fesse, les mains tirent la jambe.
+  knee_gap_smash: {
+    period: 6, still: TOOLS, grip: 'knee',
+    begin: { legs: [{ thigh: -52, shin: 50, foot: -20 }, { thigh: 0, shin: 0, foot: -80 }] },
+    end: { legs: [{ thigh: -70, shin: 75, foot: 0 }, { thigh: 0, shin: 0, foot: -80 }] },
+  },
+
+  // À plat ventre, balle au-dessus de la rotule : le talon revient vers la fesse.
+  suprapatellar_smash: { period: 6, still: TOOLS, ...HEEL_TO_GLUTE },
+
+  // Assis jambe tendue : le genou se plie, le talon glisse vers la fesse.
+  voodoo_knee: { period: 6, begin: { legs: [{ thigh: 0, shin: 0, foot: -75 }] }, end: { legs: [{ thigh: -62, shin: 74, foot: 0 }] } },
+
+  // ---- Jambe, cheville et pied (zones 11 à 13) ----
+  // Le pied bouge pendant que la balle reste sur le tibia : les orteils se relèvent, le talon reste posé.
+  medial_shin: { period: 5, still: TOOLS, end: { legs: [{ thigh: -50, shin: 85, foot: -35 }, { thigh: 0, shin: 0, foot: -80 }] } },
+  double_ball_shin: { period: 5, still: TOOLS, begin: { legs: [{ thigh: 0, shin: 0, foot: -85 }] }, end: { legs: [{ thigh: 0, shin: 0, foot: -25 }] } },
+  calf_roller: {
+    period: 5, still: TOOLS,
+    begin: { legs: [{ thigh: -20, shin: -20, foot: -80 }, { thigh: -26, shin: -16, foot: -80 }] },
+    end: { legs: [{ thigh: -20, shin: -20, foot: -28 }, { thigh: -26, shin: -16, foot: -80 }] },
+  },
+  voodoo_calf: { period: 5, begin: { legs: [{ thigh: 0, shin: 0, foot: -85 }] }, end: { legs: [{ thigh: 0, shin: 0, foot: -25 }] } },
+  voodoo_ankle: { period: 5, end: { legs: [{ thigh: 0, shin: 90, foot: -32 }, { thigh: 15, shin: 95, foot: 0 }] } },
+
+  // À genoux : le corps glisse sur la balle ou le rouleau, du genou vers la cheville ; les mains restent posées.
+  anterior_shin: { period: 7, slide: { angle: 0, from: -6, to: 6 }, refS: 0.5, still: TOOLS, begin: { arms: [{ upper: 81, fore: 81 }] }, end: { arms: [{ upper: 99, fore: 99 }] } },
+  shin_roller: { period: 7, slide: { angle: 0, from: -6, to: 6 }, refS: 0.5, still: TOOLS, begin: { arms: [{ upper: 81, fore: 81 }] }, end: { arms: [{ upper: 99, fore: 99 }] } },
+
+  // Assis sur les talons, mains derrière : le buste part en arrière, les genoux se décollent un peu.
+  shin_stretch: {
+    period: 6, anchor: 'ankle', hands: true,
+    end: { torso: -116, head: -110, legs: [{ thigh: -22, shin: 152, foot: 180 }, { thigh: -20, shin: 152, foot: 180 }] },
+  },
+
+  // Le genou avance au-dessus du pied posé, le genou arrière reste au sol, la bande reste tendue vers le mur.
+  heel_cord_band: {
+    period: 6, anchor: 'knee2', feet: [''], hands: true, still: TOOLS, stillEnds: { band: ['to'] },
+    end: { legs: [{ thigh: 10, shin: 115, foot: 0 }, { thigh: 114, shin: 180, foot: 180 }] },
+  },
+  ankle_band: {
+    period: 6, anchor: 'knee2', feet: [''], hands: true, still: TOOLS, stillEnds: { band: ['to'] },
+    end: { legs: [{ thigh: 10, shin: 115, foot: 0 }, { thigh: 114, shin: 180, foot: 180 }] },
+  },
+
+  // À genoux devant la boîte, coudes posés : le corps recule et se baisse pour ajouter de la tension.
+  bilateral_shoulder_flexion: { period: 6, anchor: 'knee', hands: 'forearm', still: TOOLS, end: { torso: -44, head: -56, legs: [{ thigh: 76, shin: 180, foot: 180 }] } },
 };

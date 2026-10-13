@@ -116,7 +116,7 @@ export const HIPS = [
         caption: 'Pied avant sur la boîte, tibia vertical, jambe arrière glissée, dos plat.',
         torso: -35, head: -45,
         legs: [{ thigh: -5, shin: 95, foot: 0 }, { thigh: 160, shin: 172, foot: 100 }],
-        arms: [{ upper: 60, fore: 80 }],
+        arms: [{ upper: 79, fore: 59 }],
         props: [
           { t: 'box', at: ['ankle', -5, 0], w: 30, h: 26 },
           { t: 'focus', at: ['hip', 0, 0], r: 14 },
@@ -190,7 +190,7 @@ export const HIPS = [
         caption: 'Jambe posée en travers de la boîte, buste penché à dos plat.',
         torso: -30, head: -40,
         legs: [{ thigh: 15, shin: 168, foot: 175 }, { thigh: 175, shin: 178, foot: 180 }],
-        arms: [{ upper: 65, fore: 90 }],
+        arms: [{ upper: 89, fore: 63 }],
         props: [
           { t: 'box', at: ['knee', -18, 0], w: 38, h: 24 },
           { t: 'focus', at: ['hip', 2, 0], r: 14 },
@@ -229,7 +229,7 @@ export const HIPS = [
         caption: 'Sur le dos, pieds contre le mur, une cheville croisée sur le genou opposé.',
         torso: 180, head: 180,
         legs: [{ thigh: -62, shin: 20, foot: 0 }, { thigh: -62, shin: -170, foot: -170 }],
-        arms: [{ upper: -90, fore: -20 }],
+        arms: [{ upper: -22, fore: -48 }],
         props: [{ t: 'wall', at: ['ankle', 8, 0] }, { t: 'focus', at: ['hip', 0, 0], r: 14 }],
       },
     ],
@@ -265,7 +265,7 @@ export const HIPS = [
         caption: 'Assis, cheville sur le genou opposé, buste penché à dos plat.',
         torso: -55, head: -60,
         legs: [{ thigh: 8, shin: 175, foot: 180 }, { thigh: 0, shin: 90, foot: 0 }],
-        arms: [{ upper: 60, fore: 95 }],
+        arms: [{ upper: 94, fore: 58 }],
         props: [{ t: 'box', at: ['hip', -12, 0], w: 40, h: 26 }, { t: 'focus', at: ['hip', 2, 0], r: 13 }],
       },
     ],
@@ -300,7 +300,7 @@ export const HIPS = [
       {
         caption: 'Sur le dos, un pied sur le rouleau avec la bande, l\'autre genou plié.',
         torso: 180, head: 180,
-        legs: [{ thigh: 5, shin: 0, foot: -70 }, { thigh: -62, shin: 20, foot: 0 }],
+        legs: [{ thigh: 5, shin: 8, foot: -70 }, { thigh: -62, shin: 20, foot: 0 }],
         arms: [{ upper: 10, fore: 0 }],
         props: [
           { t: 'roller', at: ['ankle', 0, 8], r: 6 },
@@ -419,7 +419,7 @@ export const HIPS = [
         caption: 'Sur le dos, pieds contre le mur, un genou tombe vers l\'autre côté.',
         torso: 180, head: 180,
         legs: [{ thigh: -62, shin: 20, foot: 0 }, { thigh: -70, shin: 20, foot: 0 }],
-        arms: [{ upper: -90, fore: -20 }],
+        arms: [{ upper: -22, fore: -48 }],
         props: [{ t: 'wall', at: ['ankle', 8, 0] }, { t: 'focus', at: ['hip', 0, 0], r: 14 }],
       },
     ],

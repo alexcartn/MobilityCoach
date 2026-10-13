@@ -491,7 +491,7 @@ const CORE = [
         caption: 'Pied avant à plat, tibia vertical, jambe arrière glissée, dos plat.',
         torso: -45, head: -55,
         legs: [{ thigh: -20, shin: 90, foot: 0 }, { thigh: 160, shin: 170, foot: 100 }],
-        arms: [{ upper: 70, fore: 85 }],
+        arms: [{ upper: 70, fore: 55 }],
         props: [{ t: 'focus', at: ['hip', 0, 0], r: 14 }],
       },
     ],
