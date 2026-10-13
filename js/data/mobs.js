@@ -46,7 +46,9 @@ export const MOBS = [
     ],
     caution: 'Tu dois sentir de l\'inconfort, pas une douleur brûlante ni une décharge nerveuse. Arrête si le genou proteste.',
     seconds: 120, perSide: true, when: 'any',
-    contexts: ['sitting', 'travel', 'sport', 'back'],
+    relevance: { sitting: 3, travel: 3, sport: 2, back: 2 },
+    sports: ['run', 'bike', 'lift'],
+    cue: 'Fessier serré, ventre gainé, hanches vers le sol.',
     frames: [
       {
         caption: 'Genou dans l\'angle, pied contre le mur, mains sur la cuisse avant.',
@@ -95,7 +97,9 @@ export const MOBS = [
     retest: ['Position haute : debout, fessiers serrés, sans cambrer.', 'Squat : le bas du mouvement est-il plus stable ?'],
     caution: 'Sans bonne amplitude de départ, préfère la version sans bande (couch) : la bande intensifie beaucoup.',
     seconds: 120, perSide: true, when: 'any',
-    contexts: ['sitting', 'sport', 'back'],
+    relevance: { sitting: 2, sport: 2, back: 1 },
+    sports: ['run', 'lift'],
+    cue: 'Fesse serrée, avance tout le corps au-dessus du genou.',
     frames: [
       {
         caption: 'Bande au pli de la fesse, ancrée devant. Fesse serrée, poids vers l\'avant.',
@@ -134,7 +138,9 @@ export const MOBS = [
     retest: ['Squat ou position haute : plus facile de rester stable ?', 'Flexion du genou : le talon vient-il plus près de la fesse ?'],
     caution: 'Très inconfortable au début. Respire, visage détendu, reste du côté supportable de la douleur.',
     seconds: 180, perSide: true, when: 'any',
-    contexts: ['sport', 'sitting'],
+    relevance: { sport: 2, sitting: 2 },
+    sports: ['run', 'bike', 'lift'],
+    cue: 'Roule lentement en travers, reste sur les points sensibles.',
     frames: [
       {
         caption: 'Rouleau sous la cuisse, appui sur les avant-bras, roulis d\'un côté à l\'autre.',
@@ -170,7 +176,9 @@ export const MOBS = [
     retest: ['Lève les bras au-dessus de la tête en gardant les côtes basses : plus facile ?', 'Squat : le bas du dos reste-t-il stable ?'],
     caution: 'Une douleur vive, qui irradie ou s\'accompagne d\'engourdissement : arrête et demande un avis médical.',
     seconds: 120, perSide: true, when: 'any',
-    contexts: ['back', 'sitting', 'travel'],
+    relevance: { back: 3, sitting: 2, travel: 2 },
+    sports: [],
+    cue: "Ventre gainé, déplace lentement les hanches d'un côté à l'autre.",
     frames: [
       {
         caption: 'Pieds sur un support, balle sous le bas du dos, ventre gainé.',
@@ -205,7 +213,9 @@ export const MOBS = [
     retest: ['Compare l\'amplitude des deux hanches (ischio-jambiers, fléchisseurs) : l\'écart a-t-il diminué ?'],
     caution: 'Un léger déclic peut arriver : ne le cherche pas. Douleur vive ou irradiante : avis médical.',
     seconds: 90, perSide: false, when: 'any',
-    contexts: ['back'],
+    relevance: { back: 3 },
+    sports: [],
+    cue: "Pousse un genou, tire l'autre, résiste avec les jambes : 5 s, puis inverse.",
     frames: [
       {
         caption: 'Hanches et genoux à 90°. Une main pousse, l\'autre tire, les jambes résistent.',
@@ -236,7 +246,9 @@ export const MOBS = [
     retest: ['Rotation du tronc en position assise : plus loin des deux côtés ?'],
     caution: '',
     seconds: 120, perSide: true, when: 'any',
-    contexts: ['back', 'sitting', 'travel'],
+    relevance: { back: 2, sitting: 2, travel: 2 },
+    sports: [],
+    cue: 'Épaule collée au sol, respire, laisse les genoux tomber.',
     frames: [
       {
         caption: 'Vue du dessus : épaules à plat, genoux qui tombent d\'un côté.',
@@ -271,7 +283,9 @@ export const MOBS = [
     retest: ['Bras levés au-dessus de la tête : les côtes restent-elles basses sans effort ?', 'Position haute du squat : plus facile ?'],
     caution: 'À éviter en cas de grossesse, de hernie, de chirurgie abdominale récente ou de douleur vive. Pas avant un effort lourd (soulevé max) : plutôt après.',
     seconds: 180, perSide: true, when: 'after',
-    contexts: ['back', 'sitting', 'travel'],
+    relevance: { sitting: 3, back: 2, travel: 2 },
+    sports: [],
+    cue: "Expire et laisse ton poids s'enfoncer. Reste supportable.",
     frames: [
       {
         caption: 'À plat ventre, balle sous le ventre, talon ramené vers la fesse.',
@@ -310,7 +324,9 @@ export const MOBS = [
     retest: ['Bras levés au-dessus de la tête : l\'épaule monte-t-elle plus haut sans que le dos se creuse ?', 'Suspension à une barre, position du squat arrière : plus stable ?'],
     caution: 'Si la nuque tire, soutiens la tête avec les mains.',
     seconds: 120, perSide: false, when: 'any',
-    contexts: ['sitting', 'sport', 'back', 'travel'],
+    relevance: { sitting: 3, sport: 2, back: 2, travel: 1 },
+    sports: ['bike', 'lift'],
+    cue: 'Bras croisés, cambre-toi par-dessus le rouleau, côtes basses.',
     frames: [
       {
         caption: 'Bras croisés, rouleau sous les omoplates, extension par-dessus le rouleau.',
@@ -344,7 +360,9 @@ export const MOBS = [
     retest: ['Bras tendus au-dessus de la tête, dos stable : l\'amplitude s\'est-elle améliorée ?'],
     caution: 'Évite la zone du cou. Douleur vive ou qui irradie : arrête.',
     seconds: 120, perSide: false, when: 'any',
-    contexts: ['sitting', 'back', 'sport'],
+    relevance: { sitting: 2, back: 2, sport: 2 },
+    sports: ['bike', 'lift'],
+    cue: 'Balles de chaque côté de la colonne, extension lente.',
     frames: [
       {
         caption: 'Balles de chaque côté de la colonne, hanches qui montent et descendent.',
@@ -380,7 +398,9 @@ export const MOBS = [
     retest: ['Bras levés au mur ou debout : monte-t-il plus haut sans compensation ?'],
     caution: '',
     seconds: 120, perSide: false, when: 'any',
-    contexts: ['sport', 'sitting'],
+    relevance: { sport: 3, sitting: 1 },
+    sports: ['lift'],
+    cue: 'Bras tendus, aisselles en avant, sans creuser le bas du dos.',
     frames: [
       {
         caption: 'Bras tendus au-dessus de la tête, aisselles vers l\'avant, extension par-dessus le rouleau.',
@@ -416,7 +436,9 @@ export const MOBS = [
     retest: ['Debout, serre les fessiers : le côté travaillé se contracte-t-il avec plus de force que l\'autre ?', 'Position basse du squat : plus stable ?'],
     caution: 'Sensible oui, brûlant ou nerveux non. Évite de rouler sur un os.',
     seconds: 300, perSide: true, when: 'any',
-    contexts: ['sitting', 'travel', 'back', 'sport'],
+    relevance: { sitting: 3, travel: 3, back: 2, sport: 2 },
+    sports: ['run', 'bike'],
+    cue: 'Reste sur le point sensible, mobilise le genou, respire.',
     frames: [
       {
         caption: 'Assis penché en arrière, balle sous le fessier, genou qui tombe vers l\'extérieur.',
@@ -454,7 +476,9 @@ export const MOBS = [
     retest: ['Squat complet : les genoux sortent-ils plus facilement et le dos reste-t-il plat ?', 'Position de départ du soulevé de terre.'],
     caution: 'Une pincée au pli de l\'aine : change l\'angle, ou utilise une bande pour tirer la hanche. Pas de douleur brûlante.',
     seconds: 120, perSide: true, when: 'any',
-    contexts: ['sport', 'back', 'sitting'],
+    relevance: { sport: 3, back: 1, sitting: 1 },
+    sports: ['lift'],
+    cue: "Pied à plat, genou vers l'extérieur, dos plat, oscille doucement.",
     frames: [
       {
         caption: 'Pied avant à plat, tibia vertical, jambe arrière glissée, dos plat.',

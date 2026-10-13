@@ -71,11 +71,11 @@ function el(tag, attrs, parent) {
 }
 
 // Un point de référence : ['hip', dx, dy] (articulation + décalage) ou [x, y] absolu.
-function ref(spec, J) {
+function ref(spec, J, facing = 1) {
   if (typeof spec[0] === 'number') return [spec[0], spec[1]];
   const p = J[spec[0]];
   if (!p) throw new Error('articulation inconnue : ' + spec[0]);
-  return [p[0] + (spec[1] || 0), p[1] + (spec[2] || 0)];
+  return [p[0] + (spec[1] || 0) * facing, p[1] + (spec[2] || 0)];
 }
 
 function arrowHead(parent, from, to) {
@@ -103,7 +103,7 @@ export function renderPose(pose) {
 
   // Cercles d'accessoires qui touchent le sol (balle, rouleau) : ils participent au calage.
   const roundR = (p) => p.r ?? (p.t === 'roller' ? 9 : 4.5);
-  const rounds = props.filter((p) => p.t === 'ball' || p.t === 'roller').map((p) => ({ c: ref(p.at, J), r: roundR(p) }));
+  const rounds = props.filter((p) => p.t === 'ball' || p.t === 'roller').map((p) => ({ c: ref(p.at, J, facing), r: roundR(p) }));
 
   const box = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
   const grow = (x0, y0, x1, y1) => {
@@ -125,14 +125,14 @@ export function renderPose(pose) {
 
   // Étendue des accessoires, pour cadrer toute la scène.
   for (const p of props) {
-    if (p.t === 'wall') { const x = ref(p.at, J)[0]; grow(x, floor - (p.h ?? 105), x, floor); }
+    if (p.t === 'wall') { const x = ref(p.at, J, facing)[0]; grow(x, floor - (p.h ?? 105), x, floor); }
     else if (p.t === 'box') {
-      const x = ref(p.at, J)[0];
-      const x0 = p.anchor === 'right' ? x - p.w : x;
+      const x = ref(p.at, J, facing)[0];
+      const x0 = (p.anchor === 'right') !== (facing === -1) ? x - p.w : x;
       grow(x0, floor - p.h, x0 + p.w, floor);
-    } else if (p.t === 'focus') { const [x, y] = ref(p.at, J); grow(x - (p.r ?? 13), y - (p.r ?? 13), x + (p.r ?? 13), y + (p.r ?? 13)); }
+    } else if (p.t === 'focus') { const [x, y] = ref(p.at, J, facing); grow(x - (p.r ?? 13), y - (p.r ?? 13), x + (p.r ?? 13), y + (p.r ?? 13)); }
     else if (p.t === 'band' || p.t === 'arrow') {
-      for (const q of [p.from, p.to]) { const [x, y] = ref(q, J); grow(x - 3, y - 3, x + 3, y + 3); }
+      for (const q of [p.from, p.to]) { const [x, y] = ref(q, J, facing); grow(x - 3, y - 3, x + 3, y + 3); }
     }
   }
 
@@ -158,14 +158,14 @@ export function renderPose(pose) {
 
   for (const p of props) {
     if (p.t === 'wall') {
-      const [x] = ref(p.at, J);
+      const [x] = ref(p.at, J, facing);
       el('line', { class: 'env wall', x1: x, x2: x, y1: floor - (p.h ?? 105), y2: floor }, gEnv);
     } else if (p.t === 'box') {
-      const [x] = ref(p.at, J);
-      const x0 = p.anchor === 'right' ? x - p.w : x;
+      const [x] = ref(p.at, J, facing);
+      const x0 = (p.anchor === 'right') !== (facing === -1) ? x - p.w : x;
       el('rect', { class: 'env-fill', x: x0, y: floor - p.h, width: p.w, height: p.h, rx: 2 }, gEnv);
     } else if (p.t === 'focus') {
-      const [x, y] = ref(p.at, J);
+      const [x, y] = ref(p.at, J, facing);
       el('circle', { class: 'focus', cx: x, cy: y, r: p.r ?? 13 }, gFocus);
     }
   }
@@ -181,16 +181,16 @@ export function renderPose(pose) {
 
   for (const p of props) {
     if (p.t === 'ball' || p.t === 'roller') {
-      const [x, y] = ref(p.at, J);
+      const [x, y] = ref(p.at, J, facing);
       el('circle', { class: p.t === 'roller' ? 'roller' : 'tool', cx: x, cy: y, r: roundR(p) }, gTool);
     } else if (p.t === 'band') {
-      const a = ref(p.from, J);
-      const b = ref(p.to, J);
+      const a = ref(p.from, J, facing);
+      const b = ref(p.to, J, facing);
       el('line', { class: 'band', x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, gTool);
       el('circle', { class: 'tool', cx: b[0], cy: b[1], r: 2.8 }, gTool);
     } else if (p.t === 'arrow') {
-      const a = ref(p.from, J);
-      const b = ref(p.to, J);
+      const a = ref(p.from, J, facing);
+      const b = ref(p.to, J, facing);
       if (p.bend) {
         const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
         const dx = b[0] - a[0], dy = b[1] - a[1];

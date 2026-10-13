@@ -2,6 +2,9 @@ import { h, toast } from '../ui.js';
 import * as store from '../store.js';
 import { canInstall, isStandalone, promptInstall, onInstallChange } from '../install.js';
 import { VERSION } from '../version.js';
+import { getMob } from '../data/mobs.js';
+import { loadSessions, stats } from '../sessions.js';
+import { fmtSeconds } from '../routine.js';
 
 let offInstall;
 
@@ -60,13 +63,35 @@ export async function render(root) {
     toast('Données effacées.');
   }
 
+  const sessions = await loadSessions();
+  const st = stats(sessions);
+  const dayName = (d) => d.toLocaleDateString('fr-FR', { weekday: 'narrow' });
+  const when = (iso) => new Date(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+  const history = sessions.slice(-5).reverse();
   root.append(
     h('h2', null, 'Suivi'),
-    h('p', { class: 'lead' }, 'Tes séances et tes tests avant/après apparaîtront ici.'),
+    h('p', { class: 'lead' }, 'Le livre insiste : pas de jour off, même court.'),
     h('div', { class: 'card' },
-      h('h3', null, 'Aucune séance pour l\'instant'),
-      h('p', { class: 'muted small', style: 'margin:0' }, 'L\'historique, la régularité et les résultats de tests arrivent dans les prochaines étapes.'),
+      h('div', { class: 'week', role: 'img', 'aria-label': `${st.last7.filter((d) => d.done).length} jours mobilisés sur les 7 derniers` },
+        st.last7.map((d) => h('div', { class: `day${d.done ? ' done' : ''}` },
+          h('span', { class: 'dot' }),
+          h('span', { class: 'muted small' }, dayName(d.date))))),
+      h('div', { class: 'stats' },
+        h('div', null, h('strong', null, String(st.streak)), h('span', { class: 'muted small' }, st.streak > 1 ? ' jours d\'affilée' : ' jour d\'affilée')),
+        h('div', null, h('strong', null, String(st.weekCount)), h('span', { class: 'muted small' }, ' séances sur 7 jours')),
+        h('div', null, h('strong', null, String(Math.round(st.weekSeconds / 60))), h('span', { class: 'muted small' }, ' min sur 7 jours')),
+      ),
     ),
+    history.length
+      ? h('div', { class: 'card' },
+          h('h3', null, 'Dernières séances'),
+          h('ul', { class: 'plain' }, history.map((e) => h('li', null,
+            `${when(e.at)} : ${fmtSeconds(Math.round(e.seconds / 10) * 10)}`,
+            h('span', { class: 'muted small' }, ` (${e.items.map((it) => getMob(it.id)?.name ?? it.id).join(', ')})`)))))
+      : h('div', { class: 'card' },
+          h('h3', null, 'Aucune séance pour l\'instant'),
+          h('p', { class: 'muted small', style: 'margin:0' }, 'Lance une séance depuis Aujourd\'hui : elle apparaîtra ici.')),
 
     h('p', { class: 'section-title' }, 'Application'),
     h('div', { class: 'card' }, installBox),

@@ -1,0 +1,90 @@
+// Génération et découpage d'une séance, selon les règles du livre :
+// douleur d'abord, puis positions à améliorer, puis défaire la journée ; 3 zones maximum ;
+// environ 2 minutes par position et par côté.
+
+import { MOBS, getMob } from './data/mobs.js';
+
+export const SETUP_SECONDS = 10;
+export const SWITCH_SECONDS = 5;
+export const DEFAULT_SECONDS = 120;
+export const MIN_SECONDS = 30;
+export const MAX_ZONES = 3;
+
+// Ordre des phases : la douleur passe en premier, défaire la journée en dernier.
+const PHASES = ['back', 'sport', 'sitting', 'travel'];
+
+export const sidesOf = (m) => (m.perSide ? 2 : 1);
+export const defaultSeconds = (m) => Math.min(m.seconds, DEFAULT_SECONDS);
+
+// Durée d'une fiche dans la séance : temps par position x côtés + mise en place + changement de côté.
+export function itemSeconds(item) {
+  const m = getMob(item.id);
+  return item.seconds * sidesOf(m) + SETUP_SECONDS + (m.perSide ? SWITCH_SECONDS : 0);
+}
+
+export const totalSeconds = (items) => items.reduce((n, it) => n + itemSeconds(it), 0);
+export const zonesOf = (items) => new Set(items.map((it) => getMob(it.id).zone));
+
+export function buildRoutine(settings) {
+  const budget = settings.duration * 60;
+  const wanted = PHASES.filter((c) => settings.contexts.includes(c));
+  const fallback = wanted.length === 0;
+  const active = fallback ? ['sitting'] : wanted;
+  const have = new Set(settings.equipment);
+  const usable = MOBS.filter((m) => m.tools.every((t) => have.has(t)));
+
+  const score = (m, c) =>
+    (m.relevance[c] ?? 0) + (c === 'sport' && m.sports?.some((s) => settings.sports.includes(s)) ? 1 : 0);
+  const queues = Object.fromEntries(active.map((c) => [
+    c,
+    usable
+      .filter((m) => score(m, c) > 0)
+      .sort((a, b) => score(b, c) - score(a, c) || MOBS.indexOf(a) - MOBS.indexOf(b)),
+  ]));
+
+  const cost = (m) => itemSeconds({ id: m.id, seconds: defaultSeconds(m) });
+  const chosen = [];
+  const zones = new Set();
+  let used = 0;
+  let added = true;
+  while (added) {
+    added = false;
+    for (const c of active) {
+      // La douleur prend la plus grosse part de la séance.
+      for (let k = 0; k < (c === 'back' ? 2 : 1); k++) {
+        const m = queues[c].find((x) =>
+          !chosen.some((y) => y.id === x.id)
+          && (zones.has(x.zone) || zones.size < MAX_ZONES)
+          && used + cost(x) <= budget);
+        if (!m) break;
+        chosen.push({ id: m.id, seconds: defaultSeconds(m), phase: PHASES.indexOf(c) });
+        zones.add(m.zone);
+        used += cost(m);
+        added = true;
+      }
+    }
+  }
+  chosen.sort((a, b) => a.phase - b.phase); // tri stable : l'ordre de choix est conservé dans une phase
+  return { items: chosen.map(({ id, seconds }) => ({ id, seconds })), fallback };
+}
+
+// Découpe une séance en étapes pour le minuteur.
+export function stepsFor(items) {
+  const steps = [];
+  items.forEach((it, mobIndex) => {
+    const m = getMob(it.id);
+    steps.push({ kind: 'prep', id: m.id, label: 'Mise en place', seconds: SETUP_SECONDS, mobIndex, side: 0 });
+    for (let side = 0; side < sidesOf(m); side++) {
+      if (side > 0) steps.push({ kind: 'prep', id: m.id, label: 'Change de côté', seconds: SWITCH_SECONDS, mobIndex, side });
+      steps.push({ kind: 'work', id: m.id, seconds: it.seconds, mobIndex, side });
+    }
+  });
+  return steps;
+}
+
+export function fmtSeconds(sec) {
+  if (sec < 60) return `${sec} s`;
+  const m = Math.floor(sec / 60);
+  const r = sec % 60;
+  return r ? `${m} min ${r} s` : `${m} min`;
+}

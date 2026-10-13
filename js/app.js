@@ -3,10 +3,12 @@ import * as today from './views/today.js';
 import * as library from './views/library.js';
 import * as principles from './views/principles.js';
 import * as progress from './views/progress.js';
+import * as session from './views/session.js';
 import './install.js';
 
-const routes = { today, library, principles, progress };
-const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', principles: 'Principes', progress: 'Suivi' };
+const routes = { today, library, principles, progress, session };
+const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', principles: 'Principes', progress: 'Suivi', session: 'Séance' };
+const TAB_OF = { session: 'today' }; // la séance garde l'onglet Aujourd'hui allumé
 
 // #/library/7/couch -> { name: 'library', params: ['7', 'couch'] }
 function parseHash() {
@@ -14,12 +16,17 @@ function parseHash() {
   return routes[name] ? { name, params: params.map(decodeURIComponent) } : { name: 'today', params: [] };
 }
 
+let current = null;
+
 async function render() {
   const { name, params } = parseHash();
   const view = document.getElementById('view');
+  current?.cleanup?.(); // arrête le minuteur et libère l'écran quand on quitte la séance
+  current = routes[name];
   view.replaceChildren();
+  document.body.classList.toggle('in-session', name === 'session');
   for (const a of document.querySelectorAll('.tabbar a')) {
-    if (a.dataset.route === name) a.setAttribute('aria-current', 'page');
+    if (a.dataset.route === (TAB_OF[name] ?? name)) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   }
   document.title = `${TITLES[name]} · Supple Leopard`;

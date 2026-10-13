@@ -5,6 +5,8 @@ export const DEFAULTS = {
   sports: [],
   duration: 15,
   equipment: ['ball', 'roller', 'band', 'box'],
+  sound: true,
+  vibrate: true,
 };
 
 export async function loadSettings() {
