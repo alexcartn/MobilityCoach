@@ -120,6 +120,7 @@ async function renderIndex(root, initialZone) {
         items.length
           ? h('a', { class: 'btn primary big', href: `#/session/${zone.id}/library` }, icon('play', 18), `Séance de ${minutes} min`)
           : null,
+        h('a', { class: 'btn', href: `#/pain/${zone.id}` }, 'J\'ai mal ici'),
         w ? h('p', { class: 'hint' }, `Côté ${w === 'l' ? 'gauche' : 'droit'} plus raide d'après ton bilan : la séance lui donne 30 s de plus.`) : null,
         h('h3', { class: 'section-label' }, `${mobs.length} fiche${mobs.length > 1 ? 's' : ''}`),
         h('ul', { class: 'list' }, mobs.map((m) => {

@@ -3,6 +3,7 @@
 // environ 2 minutes par position et par côté.
 
 import { MOBS, getMob } from './data/mobs.js';
+import { ZONES } from './data/zones.js';
 
 export const SETUP_SECONDS = 10;
 export const SWITCH_SECONDS = 5;
@@ -15,6 +16,8 @@ const PHASES = ['back', 'sport', 'sitting', 'travel'];
 
 export const sidesOf = (m) => (m.perSide ? 2 : 1);
 export const defaultSeconds = (m) => Math.min(m.seconds, DEFAULT_SECONDS);
+// Dose minimale du livre : 2 minutes par position (sauf une fiche plus courte par nature).
+export const minSecondsFor = (m) => Math.min(DEFAULT_SECONDS, m.seconds);
 
 // Durée d'une fiche dans la séance : temps par position x côtés + mise en place + changement de côté.
 export const WEAK_SIDE_BONUS = 30;
@@ -127,4 +130,42 @@ export function zoneRoutine(zoneId, equipment = [], budget = 480) {
     if (items.length === 3) break;
   }
   return items;
+}
+
+// Séance « J'ai mal ici » : approche amont-aval du livre. La zone douloureuse est au centre,
+// puis une zone en amont (vers le tronc) et une en aval (vers les extrémités), 3 zones au plus.
+// scores : { zoneId: 0-100 } du dernier bilan, pour préférer le voisin le moins mobile.
+export const PAIN_ROLES = ['center', 'up', 'down'];
+export function painRoutine(zoneId, equipment = [], { budget = 900, scores = null } = {}) {
+  const zone = ZONES.find((z) => z.id === zoneId);
+  const have = new Set(equipment);
+  const ranked = (z) => {
+    const all = MOBS.filter((m) => m.zone === z);
+    const usable = all.filter((m) => m.tools.every((t) => have.has(t)));
+    return (usable.length ? usable : all).slice()
+      .sort((a, b) => Math.max(...Object.values(b.relevance)) - Math.max(...Object.values(a.relevance)));
+  };
+  const choose = (ids) => {
+    const withMobs = ids.filter((z) => MOBS.some((m) => m.zone === z));
+    if (!withMobs.length) return null;
+    if (!scores) return withMobs[0];
+    // Le voisin le moins mobile d'abord ; à égalité, l'ordre de la carte.
+    return withMobs.slice().sort((a, b) => (scores[a] ?? 50) - (scores[b] ?? 50))[0];
+  };
+  const zones = { center: zoneId, up: choose(zone.up), down: choose(zone.down) };
+  const queues = Object.fromEntries(PAIN_ROLES.map((r) => [r, zones[r] ? ranked(zones[r]) : []]));
+  const cost = (m) => itemSeconds({ id: m.id, seconds: defaultSeconds(m) });
+  const items = [];
+  let used = 0;
+  // Un tour par rôle : la douleur d'abord, puis l'amont, puis l'aval ; un second tour s'il reste du temps.
+  for (let round = 0; round < 2; round++) {
+    for (const role of PAIN_ROLES) {
+      const m = queues[role][round];
+      if (!m || used + cost(m) > budget) continue;
+      items.push({ id: m.id, seconds: defaultSeconds(m), role });
+      used += cost(m);
+    }
+  }
+  items.sort((a, b) => PAIN_ROLES.indexOf(a.role) - PAIN_ROLES.indexOf(b.role));
+  return { items, zones };
 }

@@ -2,7 +2,8 @@ import { h, chipGroup, icon } from '../ui.js';
 import { CONTEXTS, SPORTS, EQUIPMENT, DURATIONS } from '../data/profile.js';
 import { loadSettings, saveSettings } from '../settings.js';
 import { MOBS, getMob } from '../data/mobs.js';
-import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS } from '../routine.js';
+import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, minSecondsFor, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS } from '../routine.js';
+import { RULES } from '../data/rules.js';
 import * as store from '../store.js';
 import { loadAssessments, loadPlan, weakSides, daysUntil, fromDateKey, pickTargetTests, totalMinutes } from '../assessment.js';
 
@@ -140,7 +141,7 @@ export async function render(root) {
               h('div', { class: 'edit-ctrl' },
                 iconBtn('up', 'Monter', () => edit((l) => { [l[idx - 1], l[idx]] = [l[idx], l[idx - 1]]; }), idx === 0),
                 iconBtn('down', 'Descendre', () => edit((l) => { [l[idx + 1], l[idx]] = [l[idx], l[idx + 1]]; }), idx === items.length - 1),
-                iconBtn('minus', 'Moins de temps', () => edit((l) => { l[idx].seconds = Math.max(MIN_SECONDS, l[idx].seconds - 30); }), it.seconds <= MIN_SECONDS),
+                iconBtn('minus', 'Moins de temps', () => edit((l) => { l[idx].seconds = Math.max(minSecondsFor(m), l[idx].seconds - 30); }), it.seconds <= minSecondsFor(m)),
                 iconBtn('plus', 'Plus de temps', () => edit((l) => { l[idx].seconds += 30; })),
                 iconBtn('close', 'Retirer', () => edit((l) => { l.splice(idx, 1); })),
               ),
@@ -169,13 +170,12 @@ export async function render(root) {
   });
 
   function paintTips() {
-    const tips = CONTEXTS.filter((c) => s.contexts.includes(c.id))
-      .flatMap((c) => c.tips.map((t) => ({ context: c.label, text: t })));
+    // Les conseils de tes contextes d'abord, puis les règles du livre.
+    const tips = [
+      ...CONTEXTS.filter((c) => s.contexts.includes(c.id)).flatMap((c) => c.tips.map((t) => ({ context: c.label, text: t }))),
+      ...RULES.map((r) => ({ context: r.title, text: r.text })),
+    ];
     tipBox.replaceChildren();
-    if (!tips.length) {
-      tipBox.append(h('p', { class: 'hint' }, 'Choisis un contexte pour voir des conseils adaptés.'));
-      return;
-    }
     tipIndex = Math.min(tipIndex, tips.length - 1);
     const tip = tips[tipIndex];
     const go = (d) => { tipIndex = (tipIndex + d + tips.length) % tips.length; paintTips(); };
@@ -275,6 +275,7 @@ export async function render(root) {
         onChange: (v) => { tipIndex = 0; save({ contexts: v }); },
       }),
       warnBox,
+      h('a', { class: 'text-link', href: '#/library' }, 'Une douleur précise ? Touche la zone', icon('arrowRight', 18)),
     ),
     sportsBox,
 

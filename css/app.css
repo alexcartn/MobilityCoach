@@ -457,6 +457,7 @@ body.no-nav #toast { bottom: var(--space-lg); }
 .session-hero .bar { height: 6px; border-radius: 3px; background: var(--hero-line); overflow: hidden; }
 .session-hero .bar > span { display: block; height: 100%; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform .25s linear; }
 .counter-line { font-size: var(--fs-sm); color: var(--hero-muted); }
+.reminder { text-align: center; margin-top: calc(var(--space-xs) * -1); }
 .cue { text-align: center; font-size: var(--fs-base); line-height: 1.5; color: var(--text-2); }
 .acc.flat .acc-body { padding-left: var(--gutter); }
 

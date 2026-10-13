@@ -3,7 +3,8 @@ import { getMob } from '../data/mobs.js';
 import { renderPose } from '../diagram.js';
 import * as store from '../store.js';
 import { loadSettings, saveSettings } from '../settings.js';
-import { stepsFor, fmtSeconds, zoneRoutine, defaultSeconds } from '../routine.js';
+import { stepsFor, fmtSeconds, zoneRoutine, painRoutine, defaultSeconds } from '../routine.js';
+import { BRACE } from '../data/rules.js';
 import { logSession, updateLastSession } from '../sessions.js';
 import { loadAssessments, weakSides } from '../assessment.js';
 import { getTest, ZONE_TEST } from '../data/tests.js';
@@ -14,24 +15,29 @@ export function cleanup() { teardown?.(); teardown = null; }
 const mmss = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 
-// #/session : la séance du jour. #/session/7 : séance ciblée sur la zone 7 ; #/session/mob/couch : une seule fiche.
-// Ces deux séances ne touchent pas à la séance du jour. Un « /library » en fin d'adresse : retour aux fiches à la fin.
+// #/session : la séance du jour. #/session/7 : séance ciblée sur la zone 7 ; #/session/mob/couch : une seule fiche ;
+// #/session/pain/10 : « J'ai mal ici » (zone, amont, aval). Ces séances ne touchent pas à la séance du jour.
+// Un « /library » en fin d'adresse : retour aux fiches à la fin.
+const ROLE_TEXT = { center: 'sur la douleur', up: 'amont', down: 'aval' };
+
 export async function render(root, params = []) {
-  const settings = await loadSettings();
+  const [settings, assessments] = await Promise.all([loadSettings(), loadAssessments()]);
   const single = params[0] === 'mob' ? getMob(params[1]) : null;
-  const zoneId = single ? null : Number(params[0]) || null;
+  const pain = params[0] === 'pain' ? Number(params[1]) || null : null;
+  const zoneId = single || pain ? null : Number(params[0]) || null;
   const routine = single
     ? { items: [{ id: single.id, seconds: defaultSeconds(single) }] }
-    : zoneId
-      ? { items: zoneRoutine(zoneId, settings.equipment) }
-      : await store.get('routine', null);
-  const fromLibrary = !!single || params[1] === 'library';
-  const backHref = single ? `#/library/${single.zone}/${single.id}` : fromLibrary ? `#/library/${zoneId}` : '#/today';
+    : pain
+      ? { items: painRoutine(pain, settings.equipment, { budget: settings.duration * 60, scores: assessments.at(-1)?.scores ?? null }).items }
+      : zoneId
+        ? { items: zoneRoutine(zoneId, settings.equipment) }
+        : await store.get('routine', null);
+  const fromLibrary = !!single || !!pain || params[1] === 'library';
+  const backHref = single ? `#/library/${single.zone}/${single.id}` : pain ? `#/pain/${pain}` : fromLibrary ? `#/library/${zoneId}` : '#/today';
   if (!routine?.items?.length) {
     location.hash = '#/today';
     return;
   }
-  const assessments = await loadAssessments();
   const weak = weakSides(assessments.at(-1)?.merged ?? {});
   const steps = stepsFor(routine.items, weak);
   let total = steps.reduce((n, s) => n + s.seconds, 0);
@@ -143,9 +149,20 @@ export async function render(root, params = []) {
             m.caution && h('p', { class: 'note' }, m.caution),
           ),
         ),
+        h('details', null,
+          h('summary', null,
+            h('span', { class: 'acc-title' }, BRACE.title),
+            icon('chevronDown', 20, 'chev'),
+          ),
+          h('div', { class: 'acc-body' },
+            h('p', null, BRACE.intro),
+            h('ol', null, BRACE.steps.map((b) => h('li', null, h('b', null, `${b.name} : `), b.text))),
+          ),
+        ),
       ),
     );
-    counter.textContent = `Fiche ${st.mobIndex + 1} sur ${routine.items.length}`;
+    const role = routine.items[st.mobIndex].role;
+    counter.textContent = `Fiche ${st.mobIndex + 1} sur ${routine.items.length}${role ? ` · ${ROLE_TEXT[role]}` : ''}`;
   }
 
   function paintTime() {
@@ -294,7 +311,7 @@ export async function render(root, params = []) {
           h('p', { class: 'small' }, 'Refais le test de la position que tu voulais améliorer : as-tu gagné en amplitude ou en stabilité ? Sans changement visible, la zone n\'était peut-être pas la bonne.'),
         ),
         h('div', { class: 'btn-row stretch' },
-          h('a', { class: 'btn primary big', href: backHref }, single ? 'Retour à la fiche' : fromLibrary ? 'Retour aux fiches' : 'Retour'),
+          h('a', { class: 'btn primary big', href: backHref }, single ? 'Retour à la fiche' : pain ? 'Retour au plan' : fromLibrary ? 'Retour aux fiches' : 'Retour'),
           h('a', { class: 'btn big', href: '#/progress' }, 'Mon suivi'),
         ),
       ),
@@ -314,8 +331,10 @@ export async function render(root, params = []) {
     ),
     figure,
     cue,
+    h('p', { class: 'hint reminder' }, 'Visage détendu, respiration calme. Inconfort oui, douleur vive non.'),
     testBox,
     h('div', { class: 'btn-row stretch' }, mainBtn, plusBtn, skipBtn),
+    h('p', { class: 'hint reminder' }, 'Tant que ça s\'améliore, tu peux rester plus longtemps, jusqu\'à 10 minutes.'),
     prefs,
     h('div', { class: 'btn-row center' }, stopBtn),
     technique,
