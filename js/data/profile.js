@@ -53,6 +53,7 @@ export const EQUIPMENT = [
   { id: 'softball', label: 'Grosse balle souple' },
   { id: 'roller', label: 'Rouleau' },
   { id: 'band', label: 'Bande élastique' },
+  { id: 'voodoo', label: 'Bande de compression' },
   { id: 'box', label: 'Chaise, banc ou boîte' },
 ];
 
