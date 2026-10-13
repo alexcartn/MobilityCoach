@@ -40,15 +40,24 @@ const BACK = [
 
 const MIRROR = 'matrix(-1 0 0 1 200 0)';
 
-// view : 'front' | 'back' ; scores : { zoneId: 0-100 | null } ; onZone(zoneId) rend les zones cliquables.
-export function renderBody(view, scores, { onZone, width = 130 } = {}) {
+// Zones visibles sur chaque face, dans l'ordre de la silhouette (de haut en bas).
+export const zonesInView = (view) => [...new Set((view === 'back' ? BACK : FRONT).map((p) => p.z).filter((z) => z !== null))].sort((a, b) => a - b);
+// Face où la zone est visible : la face avant par défaut, le dos pour les zones qui n'y figurent pas.
+export const viewOf = (zoneId) => (zonesInView('front').includes(zoneId) ? 'front' : 'back');
+
+// view : 'front' | 'back' ; scores : { zoneId: 0-100 | null } ; onZone(zoneId, auClavier) rend les zones cliquables.
+// selected : zone mise en avant ; role : 'link' (navigation) ou 'button' (sélection) ; decorative : ignoré par les lecteurs d'écran.
+export function renderBody(view, scores, { onZone, width = 130, selected = null, role = 'link', decorative = false } = {}) {
   const parts = view === 'back' ? BACK : FRONT;
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('viewBox', '0 0 200 420');
   svg.setAttribute('width', String(width));
   svg.setAttribute('height', String(Math.round(width * 2.1)));
-  svg.setAttribute('role', 'group');
-  svg.setAttribute('aria-label', view === 'back' ? 'Silhouette vue de dos' : 'Silhouette vue de face');
+  if (decorative) svg.setAttribute('aria-hidden', 'true');
+  else {
+    svg.setAttribute('role', 'group');
+    svg.setAttribute('aria-label', view === 'back' ? 'Silhouette vue de dos' : 'Silhouette vue de face');
+  }
   const focusable = new Set();
 
   for (const p of parts) {
@@ -57,19 +66,20 @@ export function renderBody(view, scores, { onZone, width = 130 } = {}) {
       for (const [k, v] of Object.entries(p.a)) el.setAttribute(k, String(v));
       if (mirrored) el.setAttribute('transform', MIRROR);
       const level = p.z === null ? 'none' : bucket(scores[p.z]);
-      el.setAttribute('class', `bz bz-${level}`);
+      el.setAttribute('class', `bz bz-${level}${p.z !== null && p.z === selected ? ' bz-sel' : ''}`);
       if (p.z !== null && onZone) {
         el.dataset.zone = String(p.z);
         el.classList.add('bz-link');
-        el.addEventListener('click', () => onZone(p.z));
+        el.addEventListener('click', () => onZone(p.z, false));
         // Un seul élément focalisable par zone : le premier rencontré.
         if (!focusable.has(p.z)) {
           focusable.add(p.z);
           const s = scores[p.z];
           el.setAttribute('tabindex', '0');
-          el.setAttribute('role', 'link');
+          el.setAttribute('role', role);
+          if (role === 'button') el.setAttribute('aria-pressed', String(p.z === selected));
           el.setAttribute('aria-label', `${zoneName(p.z)} : ${s === null || s === undefined ? 'pas encore mesurée' : s + ' sur 100'}`);
-          el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onZone(p.z); } });
+          el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onZone(p.z, true); } });
         }
       }
       svg.append(el);

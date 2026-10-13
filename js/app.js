@@ -1,7 +1,6 @@
 import { toast, hideToast } from './ui.js';
 import * as today from './views/today.js';
 import * as library from './views/library.js';
-import * as principles from './views/principles.js';
 import * as progress from './views/progress.js';
 import * as session from './views/session.js';
 import * as bilan from './views/bilan.js';
@@ -12,8 +11,8 @@ import * as settingsView from './views/settings.js';
 import { initTheme } from './theme.js';
 import './install.js';
 
-const routes = { today, library, principles, progress, session, bilan, profil, zone, retest, settings: settingsView };
-const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', principles: 'Principes', progress: 'Suivi', session: 'Séance', bilan: 'Bilan', profil: 'Profil', zone: 'Zone', retest: 'Re-test', settings: 'Réglages' };
+const routes = { today, library, progress, session, bilan, profil, zone, retest, settings: settingsView };
+const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', progress: 'Suivi', session: 'Séance', bilan: 'Bilan', profil: 'Profil', zone: 'Zone', retest: 'Re-test', settings: 'Réglages' };
 // Écrans de parcours : pas de barre d'onglets, l'onglet d'origine reste allumé quand elle revient.
 const TAB_OF = { session: 'today', bilan: 'progress', profil: 'progress', zone: 'progress', retest: 'progress', settings: 'progress' };
 const NO_NAV = new Set(['session', 'bilan', 'profil', 'zone', 'retest']);
@@ -33,7 +32,8 @@ async function render() {
   current = routes[name];
   view.replaceChildren();
   view.className = ''; // les écrans à barre d'action fixe ajoutent leur propre classe
-  document.body.classList.toggle('no-nav', NO_NAV.has(name));
+  // Une fiche ouverte est un écran d'action (barre « Faire maintenant ») : pas d'onglets.
+  document.body.classList.toggle('no-nav', NO_NAV.has(name) || (name === 'library' && params.length >= 2));
   for (const a of document.querySelectorAll('.tabbar a')) {
     if (a.dataset.route === (TAB_OF[name] ?? name)) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');

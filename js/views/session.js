@@ -3,7 +3,7 @@ import { getMob } from '../data/mobs.js';
 import { renderPose } from '../diagram.js';
 import * as store from '../store.js';
 import { loadSettings, saveSettings } from '../settings.js';
-import { stepsFor, fmtSeconds, zoneRoutine } from '../routine.js';
+import { stepsFor, fmtSeconds, zoneRoutine, defaultSeconds } from '../routine.js';
 import { logSession, updateLastSession } from '../sessions.js';
 import { loadAssessments, weakSides } from '../assessment.js';
 import { getTest, ZONE_TEST } from '../data/tests.js';
@@ -14,13 +14,19 @@ export function cleanup() { teardown?.(); teardown = null; }
 const mmss = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 
-// #/session : la séance du jour. #/session/7 : séance ciblée sur la zone 7 (sans toucher à la séance du jour).
+// #/session : la séance du jour. #/session/7 : séance ciblée sur la zone 7 ; #/session/mob/couch : une seule fiche.
+// Ces deux séances ne touchent pas à la séance du jour. Un « /library » en fin d'adresse : retour aux fiches à la fin.
 export async function render(root, params = []) {
   const settings = await loadSettings();
-  const zoneId = Number(params[0]) || null;
-  const routine = zoneId
-    ? { items: zoneRoutine(zoneId, settings.equipment) }
-    : await store.get('routine', null);
+  const single = params[0] === 'mob' ? getMob(params[1]) : null;
+  const zoneId = single ? null : Number(params[0]) || null;
+  const routine = single
+    ? { items: [{ id: single.id, seconds: defaultSeconds(single) }] }
+    : zoneId
+      ? { items: zoneRoutine(zoneId, settings.equipment) }
+      : await store.get('routine', null);
+  const fromLibrary = !!single || params[1] === 'library';
+  const backHref = single ? `#/library/${single.zone}/${single.id}` : fromLibrary ? `#/library/${zoneId}` : '#/today';
   if (!routine?.items?.length) {
     location.hash = '#/today';
     return;
@@ -288,7 +294,7 @@ export async function render(root, params = []) {
           h('p', { class: 'small' }, 'Refais le test de la position que tu voulais améliorer : as-tu gagné en amplitude ou en stabilité ? Sans changement visible, la zone n\'était peut-être pas la bonne.'),
         ),
         h('div', { class: 'btn-row stretch' },
-          h('a', { class: 'btn primary big', href: '#/today' }, 'Retour'),
+          h('a', { class: 'btn primary big', href: backHref }, single ? 'Retour à la fiche' : fromLibrary ? 'Retour aux fiches' : 'Retour'),
           h('a', { class: 'btn big', href: '#/progress' }, 'Mon suivi'),
         ),
       ),
