@@ -11,6 +11,14 @@ export async function logSession(entry) {
   return all;
 }
 
+// Complète la dernière séance enregistrée (par exemple avec le test après).
+export async function updateLastSession(patch) {
+  const all = await loadSessions();
+  if (!all.length) return;
+  all[all.length - 1] = { ...all[all.length - 1], ...patch };
+  await store.set(KEY, all);
+}
+
 export const dayKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 // Régularité : 7 derniers jours, série de jours consécutifs, volume de la semaine glissante.

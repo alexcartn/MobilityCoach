@@ -4,6 +4,9 @@ import { loadSettings, saveSettings } from '../settings.js';
 import { MOBS, getMob } from '../data/mobs.js';
 import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS } from '../routine.js';
 import * as store from '../store.js';
+import { loadAssessments, loadPlan, weakSides, daysUntil, fromDateKey, pickTargetTests, totalMinutes } from '../assessment.js';
+
+const MONTH = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
 
 const CONTEXT_ICONS = { sport: 'sport', back: 'back', sitting: 'sitting', travel: 'travel' };
 
@@ -12,8 +15,12 @@ const validRoutine = (r) => r && Array.isArray(r.items) && r.items.every((it) =>
 
 export async function render(root) {
   let s = await loadSettings();
+  const [assessments, plan] = await Promise.all([loadAssessments(), loadPlan()]);
+  const lastAssessment = assessments.at(-1);
+  const scores = lastAssessment?.scores ?? null;
+  const weak = lastAssessment ? weakSides(lastAssessment.merged) : {};
   let routine = await store.get('routine', null);
-  if (!validRoutine(routine) || routine.auto) routine = { auto: true, items: buildRoutine(s).items };
+  if (!validRoutine(routine) || routine.auto) routine = { auto: true, items: buildRoutine(s, scores).items };
   const persist = () => store.set('routine', { auto: routine.auto, items: routine.items });
   await persist(); // la séance auto doit exister en base pour que l'écran de séance la retrouve
 
@@ -37,7 +44,7 @@ export async function render(root) {
     s = { ...s, ...patch };
     saveSettings(s);
     if (routine.auto) {
-      routine = { auto: true, items: buildRoutine(s).items };
+      routine = { auto: true, items: buildRoutine(s, scores).items };
       persist();
     }
     paintDynamic();
@@ -55,14 +62,15 @@ export async function render(root) {
 
   function paintHero() {
     const items = routine.items;
-    const total = totalSeconds(items);
-    heroTitle.textContent = !routine.auto ? 'Ta séance personnalisée' : s.contexts.length ? 'Ta routine sur mesure' : 'Séance de base';
+    const total = totalSeconds(items, weak);
+    heroTitle.textContent = !routine.auto ? 'Ta séance personnalisée' : s.contexts.length || scores ? 'Ta routine sur mesure' : 'Séance de base';
     ringValue.textContent = items.length ? String(Math.max(1, Math.round(total / 60))) : '0';
 
     heroTags.replaceChildren();
     const active = CONTEXTS.filter((c) => s.contexts.includes(c.id));
-    if (!active.length) heroTags.append(h('span', { class: 'hero-tag placeholder' }, 'Choisis ton contexte ci-dessous'));
+    if (!active.length && !scores) heroTags.append(h('span', { class: 'hero-tag placeholder' }, 'Choisis ton contexte ci-dessous'));
     for (const c of active) heroTags.append(h('span', { class: 'hero-tag' }, c.label));
+    if (scores) heroTags.append(h('span', { class: 'hero-tag' }, 'Basée sur ton bilan'));
     const n = s.equipment.length;
     heroTags.append(h('span', { class: 'hero-tag' }, n ? `${n} matériel${n > 1 ? 's' : ''}` : 'Sans matériel'));
 
@@ -111,12 +119,12 @@ export async function render(root) {
       }),
     );
 
-    editPanel.replaceChildren(
+    editPanel.replaceChildren(...[
       h('div', { class: 'section-head' },
         h('h3', { class: 'section-title' }, 'Modifier ma séance'),
         !routine.auto && h('button', {
           type: 'button', class: 'btn small',
-          onClick: () => { routine = { auto: true, items: buildRoutine(s).items }; persist(); paintHero(); paintEdit(); },
+          onClick: () => { routine = { auto: true, items: buildRoutine(s, scores).items }; persist(); paintHero(); paintEdit(); },
         }, icon('retest', 16), 'Régénérer'),
       ),
       !routine.auto && h('p', { class: 'hint' }, 'Séance personnalisée : tes réglages ne la modifient plus tant que tu ne la régénères pas.'),
@@ -148,7 +156,7 @@ export async function render(root) {
           },
         }, 'Ajouter'),
       ),
-    );
+    ].filter(Boolean)); // replaceChildren natif écrirait « false » pour les valeurs vides
   }
 
   editBtn.addEventListener('click', () => {
@@ -208,6 +216,27 @@ export async function render(root) {
     paintTips();
   }
 
+  // Pas de bilan : on le propose. Re-test proche ou dû : on le rappelle.
+  function assessmentBanner() {
+    if (!lastAssessment) {
+      return h('a', { class: 'banner', href: '#/bilan' },
+        h('span', { class: 'cal-icon' }, icon('retest', 22)),
+        h('span', { class: 'txt' }, h('b', null, 'Fais ton bilan de mobilité'), h('span', null, '8 tests · 15 min · une routine qui cible ce qui te freine')),
+        icon('chevronRight', 18));
+    }
+    if (!plan?.date) return null;
+    const days = daysUntil(plan.date);
+    if (days > 7) return null;
+    const d = fromDateKey(plan.date);
+    const ids = plan.type === 'full' ? null : pickTargetTests(lastAssessment.scores);
+    return h('a', { class: 'banner', href: days <= 0 ? (plan.type === 'full' ? '#/bilan' : '#/bilan/target') : '#/retest' },
+      h('span', { class: 'cal-icon' }, h('small', null, MONTH.format(d).replace('.', '')), h('b', null, String(d.getDate()))),
+      h('span', { class: 'txt' },
+        h('b', null, days < 0 ? 'Re-test en retard : on le fait ?' : days === 0 ? 'C\'est le jour du re-test' : days === 1 ? 'Re-test demain' : `Re-test dans ${days} jours`),
+        h('span', null, ids ? `${ids.length} tests · ${totalMinutes(ids)} min` : 'Bilan complet · 15 min')),
+      icon('chevronRight', 18));
+  }
+
   root.append(
     h('header', { class: 'page-head' },
       h('span', { class: 'eyebrow' }, dateLabel()),
@@ -228,6 +257,7 @@ export async function render(root) {
       h('div', { class: 'hero-actions' }, startBtn, editBtn),
     ),
     editPanel,
+    ...[assessmentBanner()].filter(Boolean), // append natif écrirait « null » sans bandeau
 
     h('section', { class: 'section' },
       h('div', { class: 'section-head' },

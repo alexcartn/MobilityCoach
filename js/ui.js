@@ -46,6 +46,8 @@ export const ICONS = {
   play: ['M8 5.5v13l11-6.5z'],
   pause: ['M8 5v14M16 5v14'],
   skip: ['M5 5.5v13l9-6.5zM18 5v14'],
+  flame: ['M12 3c2 3 5 4.5 5 9a5 5 0 0 1-10 0c0-2 1-3.5 2-4.5.5 1.5 1.5 2 2 2 0-2.5 0-4.5 1-6.5z'],
+  sliders: ['M4 7h9M17 7h3M4 17h3M11 17h9M15 4.5v5M9 14.5v5'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -85,6 +87,16 @@ export function chipGroup({ options, selected = [], multi = true, label, onChang
     wrap.append(b);
   }
   return wrap;
+}
+
+// Télécharge un contenu texte comme un fichier (sauvegarde JSON, rappel agenda .ics).
+export function download(filename, content, type = 'text/plain') {
+  const blob = new Blob([content], { type });
+  const a = h('a', { href: URL.createObjectURL(blob), download: filename });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 let toastTimer;

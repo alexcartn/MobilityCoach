@@ -6,6 +6,7 @@ import { renderFrame } from '../diagram.js';
 import { loadSettings } from '../settings.js';
 import { buildRoutine, defaultSeconds } from '../routine.js';
 import * as store from '../store.js';
+import { loadAssessments } from '../assessment.js';
 
 // Recherche sans accents ni casse : « epaule » trouve « Épaule ».
 const norm = (t) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -135,13 +136,16 @@ function renderIndex(root) {
 }
 
 // --- Une zone -----------------------------------------------------------------------------
-function renderZone(root, zone) {
+async function renderZone(root, zone) {
+  const last = (await loadAssessments()).at(-1);
+  const score = last?.scores[zone.id] ?? null;
   root.append(
     h('header', { class: 'page-head' },
       backLink('#/library', 'Toutes les zones'),
       h('span', { class: 'eyebrow' }, `Zone ${zone.id}`),
       h('h1', { class: 'page-title' }, zone.name),
       h('p', { class: 'lead' }, zone.covers),
+      score !== null ? h('a', { class: 'badge accent', style: 'align-self:flex-start;text-decoration:none', href: `#/zone/${zone.id}` }, `Mon score : ${score} · voir le suivi`) : null,
     ),
     h('ul', { class: 'list' }, zoneMobs(zone.id).map((m) =>
       h('li', null,

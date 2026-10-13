@@ -17,24 +17,42 @@ export const sidesOf = (m) => (m.perSide ? 2 : 1);
 export const defaultSeconds = (m) => Math.min(m.seconds, DEFAULT_SECONDS);
 
 // Durée d'une fiche dans la séance : temps par position x côtés + mise en place + changement de côté.
-export function itemSeconds(item) {
+export const WEAK_SIDE_BONUS = 30;
+
+// weak : { zoneId: 'l' | 'r' } (côté le plus raide d'après le bilan) : ce côté reçoit 30 s de plus.
+export function itemSeconds(item, weak = {}) {
   const m = getMob(item.id);
-  return item.seconds * sidesOf(m) + SETUP_SECONDS + (m.perSide ? SWITCH_SECONDS : 0);
+  const bonus = m.perSide && weak[m.zone] ? WEAK_SIDE_BONUS : 0;
+  return item.seconds * sidesOf(m) + bonus + SETUP_SECONDS + (m.perSide ? SWITCH_SECONDS : 0);
 }
 
-export const totalSeconds = (items) => items.reduce((n, it) => n + itemSeconds(it), 0);
+export const totalSeconds = (items, weak = {}) => items.reduce((n, it) => n + itemSeconds(it, weak), 0);
 export const zonesOf = (items) => new Set(items.map((it) => getMob(it.id).zone));
 
-export function buildRoutine(settings) {
+// Les zones les moins mobiles d'après le bilan passent en premier.
+const needBoost = (score) => (score === null || score === undefined ? 0 : score < 25 ? 2 : score < 50 ? 1.5 : score < 65 ? 0.7 : 0);
+
+export function buildRoutine(settings, zoneScores = null) {
   const budget = settings.duration * 60;
   const wanted = PHASES.filter((c) => settings.contexts.includes(c));
-  const fallback = wanted.length === 0;
-  const active = fallback ? ['sitting'] : wanted;
+  const hasScores = !!zoneScores && Object.values(zoneScores).some((v) => v !== null && v !== undefined);
+  // Sans contexte mais avec un bilan : la séance suit les zones à travailler.
+  const byNeed = wanted.length === 0 && hasScores;
+  const fallback = wanted.length === 0 && !byNeed;
+  const active = byNeed ? ['need'] : fallback ? ['sitting'] : wanted;
   const have = new Set(settings.equipment);
   const usable = MOBS.filter((m) => m.tools.every((t) => have.has(t)));
 
-  const score = (m, c) =>
-    (m.relevance[c] ?? 0) + (c === 'sport' && m.sports?.some((s) => settings.sports.includes(s)) ? 1 : 0);
+  const score = (m, c) => {
+    if (c === 'need') {
+      const z = zoneScores[m.zone];
+      return z === null || z === undefined ? 0.1 : 4 - z / 25 + Math.max(...Object.values(m.relevance)) * 0.1;
+    }
+    const base = m.relevance[c] ?? 0;
+    if (!base) return 0;
+    return base + (c === 'sport' && m.sports?.some((s) => settings.sports.includes(s)) ? 1 : 0)
+      + (hasScores ? needBoost(zoneScores[m.zone]) : 0);
+  };
   const queues = Object.fromEntries(active.map((c) => [
     c,
     usable
@@ -51,13 +69,13 @@ export function buildRoutine(settings) {
     added = false;
     for (const c of active) {
       // La douleur prend la plus grosse part de la séance.
-      for (let k = 0; k < (c === 'back' ? 2 : 1); k++) {
+      for (let k = 0; k < (c === 'back' || c === 'need' ? 2 : 1); k++) {
         const m = queues[c].find((x) =>
           !chosen.some((y) => y.id === x.id)
           && (zones.has(x.zone) || zones.size < MAX_ZONES)
           && used + cost(x) <= budget);
         if (!m) break;
-        chosen.push({ id: m.id, seconds: defaultSeconds(m), phase: PHASES.indexOf(c) });
+        chosen.push({ id: m.id, seconds: defaultSeconds(m), phase: c === 'need' ? -1 : PHASES.indexOf(c) });
         zones.add(m.zone);
         used += cost(m);
         added = true;
@@ -69,14 +87,16 @@ export function buildRoutine(settings) {
 }
 
 // Découpe une séance en étapes pour le minuteur.
-export function stepsFor(items) {
+export function stepsFor(items, weak = {}) {
   const steps = [];
   items.forEach((it, mobIndex) => {
     const m = getMob(it.id);
+    const weakSide = m.perSide ? weak[m.zone] : null; // 'l' | 'r' | undefined
     steps.push({ kind: 'prep', id: m.id, label: 'Mise en place', seconds: SETUP_SECONDS, mobIndex, side: 0 });
     for (let side = 0; side < sidesOf(m); side++) {
       if (side > 0) steps.push({ kind: 'prep', id: m.id, label: 'Change de côté', seconds: SWITCH_SECONDS, mobIndex, side });
-      steps.push({ kind: 'work', id: m.id, seconds: it.seconds, mobIndex, side });
+      const bonus = (weakSide === 'l' && side === 0) || (weakSide === 'r' && side === 1) ? WEAK_SIDE_BONUS : 0;
+      steps.push({ kind: 'work', id: m.id, seconds: it.seconds + bonus, mobIndex, side, bonus });
     }
   });
   return steps;
@@ -87,4 +107,24 @@ export function fmtSeconds(sec) {
   const m = Math.floor(sec / 60);
   const r = sec % 60;
   return r ? `${m} min ${r} s` : `${m} min`;
+}
+
+// Séance ciblée sur une zone : 2 à 3 fiches de la zone, environ 8 minutes au plus.
+export function zoneRoutine(zoneId, equipment = [], budget = 480) {
+  const have = new Set(equipment);
+  const all = MOBS.filter((m) => m.zone === zoneId);
+  const usable = all.filter((m) => m.tools.every((t) => have.has(t)));
+  const pool = (usable.length ? usable : all)
+    .slice()
+    .sort((a, b) => Math.max(...Object.values(b.relevance)) - Math.max(...Object.values(a.relevance)));
+  const items = [];
+  let used = 0;
+  for (const m of pool) {
+    const cost = itemSeconds({ id: m.id, seconds: defaultSeconds(m) });
+    if (used + cost > budget && items.length) continue;
+    items.push({ id: m.id, seconds: defaultSeconds(m) });
+    used += cost;
+    if (items.length === 3) break;
+  }
+  return items;
 }

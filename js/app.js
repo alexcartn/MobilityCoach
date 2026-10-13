@@ -4,12 +4,19 @@ import * as library from './views/library.js';
 import * as principles from './views/principles.js';
 import * as progress from './views/progress.js';
 import * as session from './views/session.js';
+import * as bilan from './views/bilan.js';
+import * as profil from './views/profil.js';
+import * as zone from './views/zone.js';
+import * as retest from './views/retest.js';
+import * as settingsView from './views/settings.js';
 import { initTheme } from './theme.js';
 import './install.js';
 
-const routes = { today, library, principles, progress, session };
-const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', principles: 'Principes', progress: 'Suivi', session: 'Séance' };
-const TAB_OF = { session: 'today' }; // la séance garde l'onglet Aujourd'hui allumé
+const routes = { today, library, principles, progress, session, bilan, profil, zone, retest, settings: settingsView };
+const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', principles: 'Principes', progress: 'Suivi', session: 'Séance', bilan: 'Bilan', profil: 'Profil', zone: 'Zone', retest: 'Re-test', settings: 'Réglages' };
+// Écrans de parcours : pas de barre d'onglets, l'onglet d'origine reste allumé quand elle revient.
+const TAB_OF = { session: 'today', bilan: 'progress', profil: 'progress', zone: 'progress', retest: 'progress', settings: 'progress' };
+const NO_NAV = new Set(['session', 'bilan', 'profil', 'zone', 'retest']);
 
 // #/library/7/couch -> { name: 'library', params: ['7', 'couch'] }
 function parseHash() {
@@ -25,7 +32,8 @@ async function render() {
   current?.cleanup?.(); // arrête le minuteur et libère l'écran quand on quitte la séance
   current = routes[name];
   view.replaceChildren();
-  document.body.classList.toggle('in-session', name === 'session');
+  view.className = ''; // les écrans à barre d'action fixe ajoutent leur propre classe
+  document.body.classList.toggle('no-nav', NO_NAV.has(name));
   for (const a of document.querySelectorAll('.tabbar a')) {
     if (a.dataset.route === (TAB_OF[name] ?? name)) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');

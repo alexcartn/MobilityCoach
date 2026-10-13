@@ -3,8 +3,10 @@ import { getMob } from '../data/mobs.js';
 import { renderPose } from '../diagram.js';
 import * as store from '../store.js';
 import { loadSettings, saveSettings } from '../settings.js';
-import { stepsFor, fmtSeconds } from '../routine.js';
-import { logSession } from '../sessions.js';
+import { stepsFor, fmtSeconds, zoneRoutine } from '../routine.js';
+import { logSession, updateLastSession } from '../sessions.js';
+import { loadAssessments, weakSides } from '../assessment.js';
+import { getTest, ZONE_TEST } from '../data/tests.js';
 
 let teardown = null;
 export function cleanup() { teardown?.(); teardown = null; }
@@ -12,15 +14,26 @@ export function cleanup() { teardown?.(); teardown = null; }
 const mmss = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 
-export async function render(root) {
-  const routine = await store.get('routine', null);
+// #/session : la séance du jour. #/session/7 : séance ciblée sur la zone 7 (sans toucher à la séance du jour).
+export async function render(root, params = []) {
+  const settings = await loadSettings();
+  const zoneId = Number(params[0]) || null;
+  const routine = zoneId
+    ? { items: zoneRoutine(zoneId, settings.equipment) }
+    : await store.get('routine', null);
   if (!routine?.items?.length) {
     location.hash = '#/today';
     return;
   }
-  const settings = await loadSettings();
-  const steps = stepsFor(routine.items);
+  const assessments = await loadAssessments();
+  const weak = weakSides(assessments.at(-1)?.merged ?? {});
+  const steps = stepsFor(routine.items, weak);
   let total = steps.reduce((n, s) => n + s.seconds, 0);
+
+  // Test rapide avant/après sur la zone de la première fiche (note de 1 à 5, facultative).
+  const testZone = getMob(routine.items[0].id).zone;
+  const quickTest = getTest(ZONE_TEST[testZone]);
+  let before = null;
 
   let i = 0;
   let running = false;
@@ -70,6 +83,26 @@ export async function render(root) {
   const stopBtn = h('button', { type: 'button', class: 'btn danger' }, 'Arrêter');
   const view = h('div', { class: 'session' });
   const prefs = h('div', { class: 'chips center' });
+  const testBox = h('div');
+
+  function scale(current, onPick, label) {
+    return h('div', { class: 'scale', role: 'group', 'aria-label': label },
+      [1, 2, 3, 4, 5].map((v) => h('button', { type: 'button', 'aria-pressed': String(current === v), onClick: () => onPick(v) }, String(v))));
+  }
+
+  // Test avant : visible tant que la séance n'a pas démarré.
+  function paintBefore() {
+    testBox.replaceChildren();
+    if (started || !quickTest) return;
+    testBox.append(
+      h('section', { class: 'card test-card', 'aria-labelledby': 'tb-t' },
+        h('div', { class: 'head' }, h('h2', { id: 'tb-t' }, `Test avant : ${quickTest.title}`), h('span', { class: 'hint' }, 'Facultatif · tu re-testeras à la fin')),
+        h('p', { class: 'small', style: 'color:var(--text-2)' }, quickTest.intro),
+        scale(before, (v) => { before = v; paintBefore(); }, 'Note de la position, de 1 à 5'),
+        h('div', { class: 'scale-labels' }, h('span', null, 'Très limité'), h('span', null, 'Facile')),
+      ),
+    );
+  }
 
   function paintPrefs() {
     prefs.replaceChildren(
@@ -85,7 +118,8 @@ export async function render(root) {
     const st = steps[i];
     const m = getMob(st.id);
     const sideLabel = m.perSide ? SIDE_LABELS[st.side] : '';
-    kicker.textContent = !started ? 'Prêt ?' : st.kind === 'prep' ? st.label : (sideLabel || 'En cours');
+    const bonus = m.perSide && ((weak[m.zone] === 'l' && st.side === 0) || (weak[m.zone] === 'r' && st.side === 1)) ? ' · +30 s, côté plus raide' : '';
+    kicker.textContent = !started ? 'Prêt ?' : st.kind === 'prep' ? st.label : ((sideLabel + bonus) || 'En cours');
     title.textContent = m.name;
     figure.replaceChildren(renderPose({ ...m.frames[0], facing: st.side === 1 ? -1 : 1, label: m.name }));
     cue.textContent = st.kind === 'prep'
@@ -158,6 +192,7 @@ export async function render(root) {
 
   function start() {
     started = true;
+    paintBefore();
     running = true;
     endAt = Date.now() + left;
     acquireWake();
@@ -188,7 +223,7 @@ export async function render(root) {
   });
 
   skipBtn.addEventListener('click', () => {
-    if (!started) started = true;
+    if (!started) { started = true; paintBefore(); }
     advance();
   });
 
@@ -209,9 +244,33 @@ export async function render(root) {
       .map(([id, seconds]) => ({ id, seconds: Math.round(seconds) }))
       .filter((it) => it.seconds >= 10);
     const seconds = items.reduce((n, it) => n + it.seconds, 0);
-    if (seconds >= 30) {
-      await logSession({ at: new Date().toISOString(), seconds, items, contexts: settings.contexts });
+    const logged = seconds >= 30;
+    if (logged) {
+      await logSession({
+        at: new Date().toISOString(), seconds, items, contexts: settings.contexts,
+        ...(quickTest && before ? { test: { id: quickTest.id, zone: testZone, before } } : {}),
+      });
     }
+    const afterBox = h('div');
+    function paintAfter(after) {
+      afterBox.replaceChildren();
+      if (!logged || !quickTest) return;
+      const gain = before && after ? after - before : null;
+      afterBox.append(
+        h('section', { class: 'card test-card', 'aria-labelledby': 'ta-t' },
+          h('div', { class: 'head' }, h('h2', { id: 'ta-t' }, `Test après : ${quickTest.title}`), h('span', { class: 'hint' }, 'Facultatif')),
+          scale(after ?? null, async (v) => {
+            await updateLastSession({ test: { id: quickTest.id, zone: testZone, before, after: v } });
+            paintAfter(v);
+          }, 'Note de la position, de 1 à 5'),
+          h('div', { class: 'scale-labels' }, h('span', null, 'Très limité'), h('span', null, 'Facile')),
+          gain !== null
+            ? h('p', { class: 'strong', role: 'status' }, gain > 0 ? `+${gain} point${gain > 1 ? 's' : ''} par rapport au test avant.` : gain === 0 ? 'Même note qu\'avant : continue, ça demande souvent plusieurs séances.' : `${gain} point${gain < -1 ? 's' : ''} par rapport au test avant.`)
+            : after ? h('p', { class: 'hint', role: 'status' }, 'Note enregistrée.') : null,
+        ),
+      );
+    }
+    paintAfter(null);
     if (!stopped) { beep(1175, 400); buzz([300, 100, 300]); }
     root.replaceChildren(
       h('div', { class: 'session done' },
@@ -223,6 +282,7 @@ export async function render(root) {
           h('p', { class: 'strong' }, seconds >= 30 ? `${fmtSeconds(Math.round(seconds / 10) * 10)} de travail enregistrées.` : 'Trop court pour être enregistré.'),
           h('ul', { class: 'bullets' }, items.map((it) => h('li', null, `${getMob(it.id).name} : ${fmtSeconds(it.seconds)}`))),
         ),
+        afterBox,
         h('div', { class: 'card' },
           h('h3', null, 'Reteste'),
           h('p', { class: 'small' }, 'Refais le test de la position que tu voulais améliorer : as-tu gagné en amplitude ou en stabilité ? Sans changement visible, la zone n\'était peut-être pas la bonne.'),
@@ -248,6 +308,7 @@ export async function render(root) {
     ),
     figure,
     cue,
+    testBox,
     h('div', { class: 'btn-row stretch' }, mainBtn, plusBtn, skipBtn),
     prefs,
     h('div', { class: 'btn-row center' }, stopBtn),
@@ -255,6 +316,7 @@ export async function render(root) {
   );
   root.append(view);
   paintPrefs();
+  paintBefore();
   paintStep();
   paintTime();
 }

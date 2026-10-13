@@ -7,7 +7,7 @@ import { loadSettings, saveSettings } from './settings.js';
 const KEY = 'sl-theme';
 const COLORS = { light: '#f5f1e8', dark: '#14110e' };
 const THEMES = ['light', 'dark', 'auto'];
-let current = 'light';
+let current = document.documentElement.getAttribute('data-theme') || 'light'; // posé avant le premier affichage par le script de index.html
 
 export function applyTheme(theme) {
   current = THEMES.includes(theme) ? theme : 'light';
@@ -29,4 +29,5 @@ export async function setTheme(theme) {
   await saveSettings({ ...s, theme });
 }
 
-export const getTheme = () => current;
+// Lu depuis la page : fiable même si les réglages en base ne sont pas encore chargés.
+export const getTheme = () => document.documentElement.getAttribute('data-theme') || current;
