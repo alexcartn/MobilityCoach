@@ -3,6 +3,7 @@
 
 import { UPPER } from './mobs-upper.js';
 import { LOWER } from './mobs-lower.js';
+import { HIPS } from './mobs-hips.js';
 
 export const SYSTEMS = {
   joint: 'Articulation',
@@ -495,7 +496,7 @@ const CORE = [
 ];
 
 // Liste complète : fiches du tronc et de la hanche (ici), puis haut du corps et jambes.
-export const MOBS = [...CORE, ...UPPER, ...LOWER];
+export const MOBS = [...CORE, ...UPPER, ...LOWER, ...HIPS];
 
 export const zoneMobs = (zoneId) => MOBS.filter((m) => m.zone === zoneId);
 export const getMob = (id) => MOBS.find((m) => m.id === id);
