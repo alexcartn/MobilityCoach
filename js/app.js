@@ -8,13 +8,14 @@ import './install.js';
 const routes = { today, library, principles, progress };
 const TITLES = { today: 'Aujourd\'hui', library: 'Fiches', principles: 'Principes', progress: 'Suivi' };
 
-function currentRoute() {
-  const m = location.hash.match(/^#\/(\w+)/);
-  return m && routes[m[1]] ? m[1] : 'today';
+// #/library/7/couch -> { name: 'library', params: ['7', 'couch'] }
+function parseHash() {
+  const [name, ...params] = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  return routes[name] ? { name, params: params.map(decodeURIComponent) } : { name: 'today', params: [] };
 }
 
 async function render() {
-  const name = currentRoute();
+  const { name, params } = parseHash();
   const view = document.getElementById('view');
   view.replaceChildren();
   for (const a of document.querySelectorAll('.tabbar a')) {
@@ -22,7 +23,7 @@ async function render() {
     else a.removeAttribute('aria-current');
   }
   document.title = `${TITLES[name]} · Supple Leopard`;
-  await routes[name].render(view);
+  await routes[name].render(view, params);
   window.scrollTo(0, 0);
 }
 

@@ -49,6 +49,17 @@ export const PRINCIPLES = [
     note: 'En règle générale : position, articulation et glissement avant l\'entraînement ; les positions extrêmes en fin d\'amplitude plutôt après.',
   },
   {
+    id: 'techniques',
+    title: 'Les techniques',
+    items: [
+      'Vague de pression : poids du corps sur une balle ou un rouleau, muscle relâché, déplacement très lent en travers du tissu. Plus c\'est lent, plus tu supportes de pression.',
+      'Écraser et mobiliser : « punaiser » un point sensible avec la balle, puis bouger le membre dans toutes les directions pour décoller les tissus.',
+      'Contracter-relâcher : contracter environ 5 secondes, relâcher, puis gagner un peu d\'amplitude pendant 10 secondes. Sur une balle, contracter le muscle puis se laisser s\'enfoncer.',
+      'Oscillations : aller-retour lent dans et hors de la tension maximale, sans rebondir. C\'est ce qui fait céder les tissus très raides.',
+      'Bande : une bande élastique écarte les surfaces de l\'articulation pour la replacer et atteindre la capsule, plus épaisse qu\'un muscle.',
+    ],
+  },
+  {
     id: 'program',
     title: 'Programmer sa séance',
     paragraphs: ['Le livre vise 15 à 20 minutes par jour, qu\'on peut découper en petites doses.'],

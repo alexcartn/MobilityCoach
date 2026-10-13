@@ -234,3 +234,30 @@ details.card > .body { padding: 0 16px 14px; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* Schémas */
+.frame { margin: 0; }
+.frame + .frame { margin-top: 12px; }
+.frame figcaption { font-size: .875rem; color: var(--muted); padding: 6px 4px 0; }
+.fig { width: 100%; height: auto; display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.fig .env { stroke: var(--muted); stroke-width: 1.5; fill: none; stroke-linecap: round; }
+.fig .env-fill { fill: var(--line); stroke: var(--muted); stroke-width: 1.2; }
+.fig .limb { fill: none; stroke: var(--text); stroke-linecap: round; stroke-linejoin: round; }
+.fig .far { opacity: .5; }
+.fig .head { fill: var(--surface); stroke: var(--text); stroke-width: 2.5; }
+.fig .focus { fill: var(--accent); opacity: .3; }
+.fig .tool { fill: var(--accent); stroke: var(--text); stroke-width: 1; }
+.fig .roller { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.fig .band { stroke: var(--accent); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.fig .arrow { stroke: var(--accent); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.fig .arrow-head { fill: var(--accent); }
+
+/* Navigation dans les fiches */
+a.card.link { display: block; color: inherit; text-decoration: none; }
+a.card.link:active { background: var(--accent-soft); }
+a.card.zone.link { display: flex; }
+a.back { display: inline-block; margin-bottom: 8px; color: var(--accent); text-decoration: none; font-weight: 600; min-height: 32px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 14px; }
+.card .meta { margin: 0; }
+.tag.alt { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+.frames { margin-top: 4px; }

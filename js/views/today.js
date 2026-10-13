@@ -1,6 +1,8 @@
 import { h, chipGroup } from '../ui.js';
 import { CONTEXTS, SPORTS, EQUIPMENT, DURATIONS } from '../data/profile.js';
 import { loadSettings, saveSettings } from '../settings.js';
+import { MOBS } from '../data/mobs.js';
+import { duration } from './library.js';
 
 export async function render(root) {
   let s = await loadSettings();
@@ -8,6 +10,7 @@ export async function render(root) {
 
   const sportsBox = h('div');
   const adviceBox = h('div');
+  const mobsBox = h('div');
 
   function paintDynamic() {
     sportsBox.replaceChildren();
@@ -31,6 +34,26 @@ export async function render(root) {
     }
     if (!active.length) {
       adviceBox.append(h('p', { class: 'muted' }, 'Choisis au moins un contexte pour afficher des conseils adaptés.'));
+    }
+
+    // Fiches utiles pour les contextes actifs, avec le matériel déclaré.
+    mobsBox.replaceChildren();
+    const matching = MOBS.filter((m) => m.contexts.some((c) => s.contexts.includes(c)));
+    const usable = matching.filter((m) => m.tools.every((t) => s.equipment.includes(t)));
+    if (active.length) {
+      mobsBox.append(
+        h('p', { class: 'section-title' }, 'Fiches à essayer'),
+        usable.length
+          ? h('div', { class: 'stack' }, usable.map((m) =>
+              h('a', { class: 'card link', href: `#/library/${m.zone}/${m.id}` },
+                h('h3', null, m.name),
+                h('p', { class: 'muted small', style: 'margin:0' }, duration(m)),
+              )))
+          : h('p', { class: 'muted' }, 'Aucune fiche pour ce matériel : coche ce que tu as à disposition.'),
+        matching.length > usable.length
+          ? h('p', { class: 'muted small', style: 'margin-top:8px' }, `${matching.length - usable.length} autre(s) fiche(s) demandent du matériel que tu n'as pas coché.`)
+          : null,
+      );
     }
   }
 
@@ -68,6 +91,7 @@ export async function render(root) {
 
     h('p', { class: 'section-title' }, 'Conseils du moment'),
     adviceBox,
+    mobsBox,
 
     h('div', { class: 'card accent', style: 'margin-top:20px' },
       h('h3', null, 'Ma séance du jour'),

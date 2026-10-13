@@ -50,6 +50,7 @@ export const SPORTS = [
 export const EQUIPMENT = [
   { id: 'ball', label: 'Balle de lacrosse' },
   { id: 'peanut', label: 'Double balle scotchée' },
+  { id: 'softball', label: 'Grosse balle souple' },
   { id: 'roller', label: 'Rouleau' },
   { id: 'band', label: 'Bande élastique' },
   { id: 'box', label: 'Chaise, banc ou boîte' },
