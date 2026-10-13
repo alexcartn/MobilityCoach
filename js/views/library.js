@@ -69,7 +69,9 @@ function renderIndex(root) {
 
     if (q) {
       const mobs = MOBS.filter((m) => (region === 'all' || ZONES.find((z) => z.id === m.zone)?.region === region)
-        && norm(`${m.name} ${m.summary} ${m.improves.join(' ')}`).includes(q));
+        && norm(`${m.name} ${m.summary} ${m.improves.join(' ')}`).includes(q))
+        // Les fiches dont le nom correspond passent d'abord ; le tri est stable pour le reste.
+        .sort((a, b) => Number(norm(b.name).includes(q)) - Number(norm(a.name).includes(q)));
       if (mobs.length) {
         count += mobs.length;
         listBox.append(
@@ -122,7 +124,10 @@ function renderIndex(root) {
       }),
     ),
     h('p', { class: 'callout info' }, icon('clock', 22),
-      h('span', null, h('strong', null, `${MOBS.length} fiches publiées`), ` dans ${zonesWithMobs} zones sur 13. Les autres arrivent zone par zone.`)),
+      h('span', null, h('strong', null, `${MOBS.length} fiches publiées`),
+        zonesWithMobs === ZONES.length
+          ? ` : au moins une pour chacune des ${ZONES.length} zones. D'autres s'ajouteront.`
+          : ` dans ${zonesWithMobs} zones sur ${ZONES.length}. Les autres arrivent zone par zone.`)),
     listBox,
   );
 

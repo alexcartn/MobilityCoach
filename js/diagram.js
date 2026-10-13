@@ -183,6 +183,10 @@ export function renderPose(pose) {
     if (p.t === 'ball' || p.t === 'roller') {
       const [x, y] = ref(p.at, J, facing);
       el('circle', { class: p.t === 'roller' ? 'roller' : 'tool', cx: x, cy: y, r: roundR(p) }, gTool);
+    } else if (p.t === 'bar') {
+      const a = ref(p.from, J, facing);
+      const b = ref(p.to, J, facing);
+      el('line', { class: 'bar', x1: a[0], y1: a[1], x2: b[0], y2: b[1], 'stroke-width': p.w ?? 12 }, gTool);
     } else if (p.t === 'band') {
       const a = ref(p.from, J, facing);
       const b = ref(p.to, J, facing);

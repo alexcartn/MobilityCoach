@@ -1,6 +1,9 @@
 // Fiches de mobilisation, reformulées d'après le chapitre 7 de Becoming a Supple Leopard.
 // Les schémas sont décrits en angles (voir js/diagram.js) : 0 = droite, 90 = bas, -90 = haut, 180 = gauche.
 
+import { UPPER } from './mobs-upper.js';
+import { LOWER } from './mobs-lower.js';
+
 export const SYSTEMS = {
   joint: 'Articulation',
   sliding: 'Glissement des tissus',
@@ -16,7 +19,7 @@ export const METHODS = {
   extension: 'Extension active',
 };
 
-export const MOBS = [
+const CORE = [
   // Zone 7 : hanche avant ---------------------------------------------------------------
   {
     id: 'couch',
@@ -490,6 +493,9 @@ export const MOBS = [
     ],
   },
 ];
+
+// Liste complète : fiches du tronc et de la hanche (ici), puis haut du corps et jambes.
+export const MOBS = [...CORE, ...UPPER, ...LOWER];
 
 export const zoneMobs = (zoneId) => MOBS.filter((m) => m.zone === zoneId);
 export const getMob = (id) => MOBS.find((m) => m.id === id);
