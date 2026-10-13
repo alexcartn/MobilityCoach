@@ -4,6 +4,7 @@ import * as library from './views/library.js';
 import * as principles from './views/principles.js';
 import * as progress from './views/progress.js';
 import * as session from './views/session.js';
+import { initTheme } from './theme.js';
 import './install.js';
 
 const routes = { today, library, principles, progress, session };
@@ -34,6 +35,7 @@ async function render() {
   window.scrollTo(0, 0);
 }
 
+initTheme();
 window.addEventListener('hashchange', render);
 render();
 

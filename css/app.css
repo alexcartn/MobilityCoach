@@ -55,8 +55,8 @@
   --nav-gap: 16px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Thème : clair par défaut. Sombre ou automatique se choisissent dans Suivi > Apparence. */
+:root[data-theme="dark"] {
     --bg: #14110e;
     --surface: #1e1a16;
     --surface-2: #2a241e;
@@ -84,6 +84,35 @@
     --ok-bg: #17302a;
     --ok-ink: #9fd8be;
   }
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+      --bg: #14110e;
+      --surface: #1e1a16;
+      --surface-2: #2a241e;
+      --text: #f3ece0;
+      --text-2: #d6ccbc;
+      --muted: #b0a595;
+      --line: #2f2922;
+      --line-soft: #2a241f;
+      --line-strong: #4a4239;
+  
+      --accent-text: #f0ae62;
+      --accent-soft: #3a2c16;
+      --accent-soft-ink: #f6d3a4;
+  
+      --hero-bg: #2a231c;
+      --hero-line: #40382f;
+      --hero-chip: #3a3128;
+  
+      --nav-bg: #26201a;
+      --nav-active-bg: #3a3128;
+  
+      --warn-bg: #3a1a17;
+      --warn-ink: #ffb4aa;
+      --danger: #ff9d90;
+      --ok-bg: #17302a;
+      --ok-ink: #9fd8be;
+    }
 }
 
 * { box-sizing: border-box; }
@@ -510,6 +539,7 @@ a.zone-row > .ic:last-child, a.mob-row > .ic:last-child { color: var(--muted); }
 .fig .tool { fill: var(--accent); stroke: var(--text); stroke-width: 1; }
 .fig .roller { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
 .fig .band, .fig .arrow { stroke: var(--accent); stroke-width: 2.5; fill: none; stroke-linecap: round; }
+.fig .bar { stroke: var(--accent-soft); stroke-linecap: round; }
 .fig .arrow-head { fill: var(--accent); }
 
 /* Séance du jour : liste dans le hero et panneau de modification */

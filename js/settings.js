@@ -7,6 +7,7 @@ export const DEFAULTS = {
   equipment: ['ball', 'roller', 'band', 'box'],
   sound: true,
   vibrate: true,
+  theme: 'light',
 };
 
 export async function loadSettings() {

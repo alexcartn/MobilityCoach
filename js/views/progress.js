@@ -1,10 +1,11 @@
-import { h, toast, icon } from '../ui.js';
+import { h, toast, icon, chipGroup } from '../ui.js';
 import * as store from '../store.js';
 import { canInstall, isStandalone, promptInstall, onInstallChange } from '../install.js';
 import { VERSION } from '../version.js';
 import { getMob } from '../data/mobs.js';
 import { loadSessions, stats, dayKey } from '../sessions.js';
 import { fmtSeconds } from '../routine.js';
+import { getTheme, setTheme } from '../theme.js';
 
 let offInstall;
 
@@ -118,6 +119,21 @@ export async function render(root) {
           h('p', null, 'Ton historique et ta régularité s\'afficheront ici dès ta première séance.'),
           h('a', { href: '#/today', class: 'btn primary', style: 'align-self:flex-start' }, 'Préparer ma séance'),
         ),
+
+    h('section', { class: 'section', style: 'gap:10px' },
+      h('h2', { class: 'section-label' }, 'Apparence'),
+      chipGroup({
+        options: [{ id: 'light', label: 'Clair' }, { id: 'dark', label: 'Sombre' }, { id: 'auto', label: 'Automatique' }],
+        selected: [getTheme()],
+        multi: false,
+        label: 'Thème de l\'application',
+        className: 'segmented',
+        itemClass: '',
+        render: (o) => o.label,
+        onChange: (v) => setTheme(v[0]),
+      }),
+      h('p', { class: 'hint' }, 'Clair par défaut. « Automatique » suit le réglage de ton téléphone.'),
+    ),
 
     h('section', { class: 'section', style: 'gap:10px' },
       h('h2', { class: 'section-label' }, 'Application'),
