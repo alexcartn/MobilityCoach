@@ -179,7 +179,7 @@ async function renderIndex(root, initialZone) {
 
   root.append(
     h('header', { class: 'page-head' },
-      h('h1', { class: 'page-title' }, 'Fiches'),
+      h('h1', { class: 'page-title' }, 'Corps'),
       h('p', { class: 'lead' }, 'Touche la zone qui te gêne, puis lance la séance.'),
     ),
     h('label', { class: 'search', for: 'zone-search' },

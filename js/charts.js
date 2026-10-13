@@ -38,8 +38,10 @@ export function lineChart(points, label) {
   return svg;
 }
 
-// Minutes par semaine, de la plus ancienne à la semaine en cours. values : nombres.
-export function barChart(values, label) {
+// Barres de minutes. values : nombres, de la plus ancienne à la plus récente.
+// Sans option : légendes « Il y a N sem. » et « Cette sem. » (page d'une zone).
+// labels : une légende par barre (une sur labelEvery) ; highlight : barre mise en avant (par défaut la dernière, -1 aucune).
+export function barChart(values, label, { labels = null, labelEvery = 1, highlight = values.length - 1 } = {}) {
   const svg = svgEl('svg', { viewBox: '0 0 320 150', width: '100%', role: 'img', 'aria-label': label, class: 'chart' });
   svgEl('line', { x1: 0, x2: 320, y1: 120, y2: 120, class: 'axis' }, svg);
   const max = Math.max(1, ...values);
@@ -48,12 +50,15 @@ export function barChart(values, label) {
   values.forEach((v, i) => {
     const h = Math.round((v / max) * 90);
     const x = slot * i + (slot - w) / 2;
-    // Une semaine sans séance garde un trait de 3 px : on voit qu'elle existe, sans chiffre.
+    // Une période sans séance garde un trait de 3 px : on voit qu'elle existe, sans chiffre.
     const barH = Math.max(h, 3);
-    svgEl('rect', { x, y: 120 - barH, width: w, height: barH, rx: 3, class: i === values.length - 1 ? 'cbar last' : 'cbar' }, svg);
+    svgEl('rect', { x, y: 120 - barH, width: w, height: barH, rx: 3, class: i === highlight ? 'cbar last' : 'cbar' }, svg);
     if (v) text(svg, x + w / 2, 120 - barH - 6, String(v), { class: 'chart-v', 'text-anchor': 'middle' });
+    if (labels && i % labelEvery === 0) text(svg, x + w / 2, 140, labels[i], { class: 'chart-t', 'text-anchor': 'middle' });
   });
-  text(svg, 4, 140, `Il y a ${values.length - 1} sem.`, { class: 'chart-t', 'text-anchor': 'start' });
-  text(svg, 316, 140, 'Cette sem.', { class: 'chart-t', 'text-anchor': 'end' });
+  if (!labels) {
+    text(svg, 4, 140, `Il y a ${values.length - 1} sem.`, { class: 'chart-t', 'text-anchor': 'start' });
+    text(svg, 316, 140, 'Cette sem.', { class: 'chart-t', 'text-anchor': 'end' });
+  }
   return svg;
 }

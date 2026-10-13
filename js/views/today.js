@@ -239,9 +239,28 @@ export async function render(root) {
   }
 
   root.append(
+    h('div', { class: 'today-top' },
     h('header', { class: 'page-head' },
       h('span', { class: 'eyebrow' }, dateLabel()),
       h('h1', { class: 'page-title' }, 'Aujourd\'hui'),
+    ),
+
+    h('section', { class: 'section', style: 'gap:var(--space-xs)', 'aria-labelledby': 'time-t' },
+      h('div', { class: 'section-head' },
+        h('h2', { id: 'time-t', class: 'section-label' }, 'Temps disponible'),
+        h('span', { class: 'hint' }, 'Idéal : 15 à 20 min par jour'),
+      ),
+      chipGroup({
+        options: DURATIONS,
+        selected: [s.duration],
+        multi: false,
+        label: 'Durée de la séance',
+        className: 'segmented',
+        itemClass: '',
+        render: (o) => o.label,
+        onChange: (v) => save({ duration: v[0] }),
+      }),
+    ),
     ),
 
     h('section', { class: 'hero', 'aria-labelledby': 'seance-t' },
@@ -278,21 +297,6 @@ export async function render(root) {
       h('a', { class: 'text-link', href: '#/library' }, 'Une douleur précise ? Touche la zone', icon('arrowRight', 18)),
     ),
     sportsBox,
-
-    h('section', { class: 'section' },
-      h('h2', { class: 'section-title' }, 'Temps disponible'),
-      chipGroup({
-        options: DURATIONS,
-        selected: [s.duration],
-        multi: false,
-        label: 'Durée de la séance',
-        className: 'segmented',
-        itemClass: '',
-        render: (o) => o.label,
-        onChange: (v) => save({ duration: v[0] }),
-      }),
-      h('p', { class: 'hint' }, 'Vise 15 à 20 minutes par jour, tu peux les répartir en petites doses.'),
-    ),
 
     h('details', { class: 'fold' },
       h('summary', null,

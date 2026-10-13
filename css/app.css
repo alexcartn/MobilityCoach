@@ -141,6 +141,7 @@ a { color: inherit; }
 
 /* ---------- Titres ---------- */
 .page-head { display: flex; flex-direction: column; gap: var(--space-xs); }
+.today-top { display: flex; flex-direction: column; gap: var(--space-md); }
 .eyebrow {
   font-size: var(--fs-label); font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; color: var(--muted);
@@ -195,7 +196,8 @@ a { color: inherit; }
 .hero-tags { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-sm); font-size: var(--fs-sm); color: var(--hero-muted); }
 .hero-tag { font-weight: 600; color: var(--hero-text); }
 .hero-tag + .hero-tag::before { content: "·"; margin-right: var(--space-sm); color: var(--hero-muted); font-weight: 400; }
-.hero-tag.placeholder { color: var(--hero-muted); font-weight: 500; }
+.hero-tag.placeholder { flex-basis: 100%; color: var(--hero-muted); font-weight: 500; }
+.hero-tag.placeholder + .hero-tag::before { content: none; }
 
 /* ---------- Boutons ---------- */
 .btn {
@@ -375,7 +377,8 @@ button.row { cursor: pointer; }
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
   border-radius: 16px; color: var(--nav-ink); text-decoration: none; font-size: var(--fs-label); font-weight: 600;
 }
-.tabbar svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabbar svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabbar a[aria-current="page"] svg { stroke-width: 2.1; }
 .tabbar a[aria-current="page"] { background: var(--nav-active-bg); color: var(--accent); font-weight: 700; }
 
 /* Toast */
@@ -648,6 +651,41 @@ main.has-bar { padding-bottom: 130px; }
 .switch[aria-checked="true"] { background: var(--text); justify-content: flex-end; }
 .switch span { width: 26px; height: 26px; border-radius: 50%; background: var(--surface); }
 .switch[aria-checked="true"] span { background: var(--accent); }
+
+/* ---------- Statistiques ---------- */
+.period-nav { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+.period-nav .label { flex: 1; text-align: center; font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 700; letter-spacing: -.01em; }
+
+.delta-mini { margin-left: var(--space-xs); font: 700 var(--fs-label)/1 var(--font-body); color: var(--muted); }
+.delta-mini.up { color: var(--ok-ink); }
+.delta-mini.down { color: var(--warn-ink); }
+
+/* Carte de régularité : un mois en 7 colonnes, ou des semaines en colonnes (lundi en haut). */
+.heat { display: grid; gap: 4px; }
+.heat.month { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.heat.weeks { grid-auto-flow: column; grid-template-rows: repeat(7, auto); gap: 3px; }
+.heat-dow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; text-align: center; font-size: var(--fs-label); font-weight: 700; color: var(--muted); }
+.heat-cell {
+  appearance: none; border: 0; padding: 0; font: 600 var(--fs-sm)/1 var(--font-body); font-variant-numeric: tabular-nums;
+  border-radius: 6px; aspect-ratio: 1; min-width: 0; cursor: pointer; color: var(--text-2);
+  background: var(--surface-2);
+}
+.heat-dow + .heat { margin-top: calc(var(--space-xs) * -1); }
+.heat-months { display: grid; gap: 3px; margin-top: calc(var(--space-2xs) * -1); font-size: var(--fs-label); color: var(--muted); }
+.heat-months span { white-space: nowrap; }
+.heat.month .heat-cell { max-height: 46px; }
+.heat.weeks .heat-cell { border-radius: 4px; }
+.heat-cell.l1, .heat-legend i.l1 { background: var(--z-0); }
+.heat-cell.l2, .heat-legend i.l2 { background: var(--z-1); }
+.heat-cell.l3, .heat-legend i.l3 { background: var(--z-2); color: var(--accent-ink); }
+.heat-cell.l1, .heat-cell.l2 { color: var(--text); }
+.heat-cell.outside { visibility: hidden; }
+.heat-cell.future { opacity: .4; cursor: default; }
+.heat-cell[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--text); font-weight: 800; }
+.heat-legend { display: flex; align-items: center; gap: var(--space-xs); font-size: var(--fs-label); color: var(--muted); }
+.heat-legend i { width: 14px; height: 14px; border-radius: 4px; background: var(--surface-2); display: inline-block; }
+.day-detail { min-height: 4.6em; display: flex; flex-direction: column; gap: 2px; padding-top: var(--space-xs); border-top: 1px solid var(--line); }
+.detail-title { font: 700 var(--fs-base)/1.3 var(--font-body); }
 
 /* ---------- Mouvement : transform et opacité seulement ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } }
