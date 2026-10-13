@@ -141,6 +141,7 @@ a { color: inherit; }
 
 /* ---------- Titres ---------- */
 .page-head { display: flex; flex-direction: column; gap: var(--space-xs); }
+.today-top { display: flex; flex-direction: column; gap: var(--space-md); }
 .eyebrow {
   font-size: var(--fs-label); font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; color: var(--muted);
@@ -195,7 +196,8 @@ a { color: inherit; }
 .hero-tags { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-sm); font-size: var(--fs-sm); color: var(--hero-muted); }
 .hero-tag { font-weight: 600; color: var(--hero-text); }
 .hero-tag + .hero-tag::before { content: "·"; margin-right: var(--space-sm); color: var(--hero-muted); font-weight: 400; }
-.hero-tag.placeholder { color: var(--hero-muted); font-weight: 500; }
+.hero-tag.placeholder { flex-basis: 100%; color: var(--hero-muted); font-weight: 500; }
+.hero-tag.placeholder + .hero-tag::before { content: none; }
 
 /* ---------- Boutons ---------- */
 .btn {
