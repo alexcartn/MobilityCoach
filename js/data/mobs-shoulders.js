@@ -370,7 +370,7 @@ export const SHOULDERS = [
     systems: ['joint'],
     methods: ['band', 'oscillation'],
     tools: ['band'],
-    toolsNote: 'Une bande élastique solide fixée à hauteur d\'épaule, ou un poids lourd si tu sais t\'en servir. Une variante qui vient de Donnie Thompson.',
+    toolsNote: 'Une bande élastique solide fixée à hauteur d\'épaule, ou un poids lourd si tu sais t\'en servir.',
     improves: ['Capsule arrière de l\'épaule', 'Position au-dessus de la tête', 'Douleurs de l\'épaule'],
     steps: [
       'Étire la bande et avance pour créer de la tension.',

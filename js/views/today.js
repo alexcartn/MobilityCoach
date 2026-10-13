@@ -89,9 +89,9 @@ export async function render(root) {
     const notes = [];
     if (!items.length) notes.push('Séance vide : ajoute une fiche ou ajuste tes réglages.');
     if (total > budget + 60) notes.push(`Plus long que ton temps disponible (${s.duration} min).`);
-    if (zonesOf(items).size > MAX_ZONES) notes.push(`Le livre conseille ${MAX_ZONES} zones au maximum par séance.`);
+    if (zonesOf(items).size > MAX_ZONES) notes.push(`Au-delà de ${MAX_ZONES} zones par séance, on s'éparpille : garde-en ${MAX_ZONES} au maximum.`);
     if (items.some((it) => it.seconds < DEFAULT_SECONDS && getMob(it.id).seconds >= DEFAULT_SECONDS)) {
-      notes.push('Moins de 2 minutes par position : le livre recommande au moins 2 minutes.');
+      notes.push('Moins de 2 minutes par position : c\'est sous la dose utile, il en faut au moins 2.');
     }
     heroNote.textContent = notes.join(' ');
     heroNote.hidden = notes.length === 0;
@@ -291,7 +291,7 @@ export async function render(root) {
         render: (o) => o.label,
         onChange: (v) => save({ duration: v[0] }),
       }),
-      h('p', { class: 'hint' }, 'Le livre vise 15 à 20 minutes par jour, qu\'on peut répartir en petites doses.'),
+      h('p', { class: 'hint' }, 'Vise 15 à 20 minutes par jour, tu peux les répartir en petites doses.'),
     ),
 
     h('details', { class: 'fold' },

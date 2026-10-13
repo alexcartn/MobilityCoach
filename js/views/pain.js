@@ -55,7 +55,7 @@ export async function render(root, params = []) {
       h('a', { class: 'back-link', href: `#/library/${zone.id}` }, icon('chevronLeft', 18), zone.name),
       h('span', { class: 'eyebrow' }, 'J\'ai mal ici'),
       h('h1', { class: 'page-title sm' }, `Plan pour : ${zone.name.toLowerCase()}`),
-      h('p', { class: 'lead' }, 'Le livre conseille de ne pas s\'acharner sur le point douloureux : on mobilise aussi les tissus au-dessus et en dessous, qui tirent dessus. Environ 2 minutes par position et par côté.'),
+      h('p', { class: 'lead' }, 'Ne t\'acharne pas sur le point douloureux : mobilise aussi les tissus au-dessus et en dessous, qui tirent dessus. Compte environ 2 minutes par position et par côté.'),
     ),
     h('p', { class: 'callout warn' }, icon('warn'),
       h('span', null, 'Douleur vive, qui irradie, engourdissement ou suite à un choc : avis médical avant de mobiliser. Inconfort accepté, douleur brûlante non.')),
