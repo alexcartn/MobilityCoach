@@ -5,6 +5,7 @@ import { lineChart } from '../charts.js';
 import { loadAssessments, loadPlan, globalSeries, zoneDelta, priorities, pickTargetTests, totalMinutes, profile, daysUntil, fromDateKey } from '../assessment.js';
 import { loadSessions, stats, dayKey } from '../sessions.js';
 import { fmtSeconds } from '../routine.js';
+import * as S from '../stats.js';
 
 const MONTHS = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
 
@@ -146,6 +147,30 @@ export async function render(root) {
         weekStrip(week),
       );
 
+  // Le mois en cours, comparé au mois d'avant à la même date.
+  const now = new Date();
+  const monthStart = S.startOfMonth(now);
+  const tomorrow = S.addDays(S.startOfDay(now), 1);
+  const month = S.summary(sessions, monthStart, tomorrow, now);
+  const prevStart = S.addMonths(monthStart, -1);
+  const prevEnd = new Date(Math.min(monthStart.getTime(), S.addDays(prevStart, S.daysBetween(monthStart, tomorrow)).getTime()));
+  const prevMonth = S.summary(sessions, prevStart, prevEnd, now);
+  const monthName = new Intl.DateTimeFormat('fr-FR', { month: 'long' }).format(now);
+  const vs = (a, b, fmt) => (prevMonth.count && a !== b ? h('small', { class: `delta-mini ${a > b ? 'up' : 'down'}` }, `${a > b ? '+' : '−'}${fmt(Math.abs(a - b))}`) : null);
+  const monthSection = sessions.length
+    ? h('section', { class: 'section', style: 'gap:var(--space-xs)', 'aria-labelledby': 'month-t' },
+        h('div', { class: 'section-head' },
+          h('h2', { id: 'month-t', class: 'section-title' }, `En ${monthName}`),
+          prevMonth.count ? h('span', { class: 'hint' }, 'écart à la même date le mois d\'avant') : null),
+        h('ul', { class: 'list kv' },
+          h('li', null, h('span', { class: 'k' }, 'Séances'), h('span', { class: 'v' }, String(month.count), vs(month.count, prevMonth.count, String))),
+          h('li', null, h('span', { class: 'k' }, 'Temps de mobilité'), h('span', { class: 'v' }, S.fmtDuration(month.seconds), vs(month.seconds, prevMonth.seconds, S.fmtDuration))),
+          h('li', null, h('span', { class: 'k' }, 'Jours actifs'), h('span', { class: 'v' }, `${month.activeDays} / ${month.elapsedDays}`)),
+          h('li', { class: 'link' }, h('a', { class: 'v-link', href: '#/stats' }, h('span', { class: 'k' }, 'Toutes mes statistiques'), icon('chevronRight', 18))),
+        ),
+      )
+    : null;
+
   root.append(
     h('header', { class: 'page-head suivi-head' },
       h('h1', { class: 'page-title' }, 'Suivi'),
@@ -156,6 +181,7 @@ export async function render(root) {
     ),
     ...assessmentBlock,
     weekSection,
+    ...(monthSection ? [monthSection] : []),
     ...zonesBlock,
 
     sessions.length

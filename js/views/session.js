@@ -271,6 +271,7 @@ export async function render(root, params = []) {
     if (logged) {
       await logSession({
         at: new Date().toISOString(), seconds, items, contexts: settings.contexts,
+        kind: single ? 'mob' : pain ? 'pain' : zoneId ? 'zone' : 'daily',
         ...(quickTest && before ? { test: { id: quickTest.id, zone: testZone, before } } : {}),
       });
     }
