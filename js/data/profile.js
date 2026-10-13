@@ -54,6 +54,7 @@ export const EQUIPMENT = [
   { id: 'roller', label: 'Rouleau' },
   { id: 'band', label: 'Bande élastique' },
   { id: 'voodoo', label: 'Bande de compression' },
+  { id: 'dowel', label: 'Bâton ou tube' },
   { id: 'box', label: 'Chaise, banc ou boîte' },
 ];
 
