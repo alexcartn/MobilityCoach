@@ -14,8 +14,8 @@ export const MOTIONS = {
   // Le buste se redresse, le genou arrière reste contre le mur.
   couch: { period: 6, anchor: 'knee', still: ['wall'] },
 
-  // Le corps glisse sur le rouleau, qui tourne sur place ; les avant-bras restent posés.
-  quad_smash: { period: 7, slide: { angle: 172, from: -8, to: 8 }, hands: true, still: ['roller'], refS: 0.5 },
+  // Le corps glisse sur le rouleau, qui tourne sur place ; les avant-bras restent posés, les bras pivotent autour des coudes.
+  quad_smash: { period: 7, slide: { angle: 172, from: -8, to: 8 }, hands: 'forearm', still: ['roller'], refS: 0.5 },
 
   // Le buste descend sur la jambe avant, les mains restent au sol, la hanche ne bouge pas.
   hip_er_floor: { period: 7, end: { torso: -6, head: -14 }, anchor: 'hip', hands: true },

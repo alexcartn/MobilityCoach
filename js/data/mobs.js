@@ -61,7 +61,7 @@ const CORE = [
         caption: 'Genou dans l\'angle, pied contre le mur, mains sur la cuisse avant.',
         torso: -62, head: -72,
         legs: [{ thigh: 127, shin: -90, foot: -90 }, { thigh: -5, shin: 90, foot: 0 }],
-        arms: [{ upper: 55, fore: 95 }],
+        arms: [{ upper: 130, fore: 28 }],
         props: [
           { t: 'wall', at: ['knee', -5.5, 0] },
           { t: 'focus', at: ['thigh', 0, 0], r: 14 },
@@ -152,7 +152,7 @@ const CORE = [
       {
         caption: 'Rouleau sous la cuisse, appui sur les avant-bras, roulis d\'un côté à l\'autre.',
         torso: 0, head: -18,
-        legs: [{ thigh: 172, shin: 168, foot: 110 }, { thigh: 175, shin: 140, foot: 100 }],
+        legs: [{ thigh: 172, shin: 172, foot: 110 }, { thigh: 175, shin: 175, foot: 100 }],
         arms: [{ upper: 90, fore: 0 }],
         props: [
           { t: 'roller', at: ['thigh', 0, 13] },

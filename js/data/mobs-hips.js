@@ -155,7 +155,7 @@ export const HIPS = [
         caption: 'Genou avant plié sur le côté, jambe arrière étendue, buste penché à dos plat.',
         torso: -25, head: -35,
         legs: [{ thigh: 20, shin: 165, foot: 175 }, { thigh: 175, shin: 178, foot: 180 }],
-        arms: [{ upper: 70, fore: 90 }],
+        arms: [{ upper: 82, fore: 74 }],
         props: [{ t: 'focus', at: ['hip', 2, 0], r: 14 }],
       },
     ],
