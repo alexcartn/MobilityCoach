@@ -4,6 +4,7 @@ import { loadSettings, saveSettings } from '../settings.js';
 import { MOBS, getMob } from '../data/mobs.js';
 import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, minSecondsFor, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS } from '../routine.js';
 import { RULES } from '../data/rules.js';
+import { equipIcon } from '../equip.js';
 import * as store from '../store.js';
 import { loadAssessments, loadPlan, weakSides, daysUntil, fromDateKey, pickTargetTests, totalMinutes } from '../assessment.js';
 
@@ -307,6 +308,8 @@ export async function render(root) {
         options: EQUIPMENT,
         selected: s.equipment,
         label: 'Matériel',
+        itemClass: 'chip eq-chip',
+        render: (o) => [equipIcon(o.id, 24), o.label],
         onChange: (v) => { eqCount.textContent = `${v.length} sur ${EQUIPMENT.length}`; save({ equipment: v }); },
       }),
     ),

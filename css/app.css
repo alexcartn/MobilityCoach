@@ -259,6 +259,17 @@ a { color: inherit; }
   font-weight: 600; cursor: pointer; white-space: nowrap;
   transition: background-color .15s, color .15s;
 }
+/* Icônes du matériel : encre au trait, objet en fauve (js/equip.js). */
+.eq { flex: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+.eq-fill { fill: var(--accent); }
+.eq-soft { fill: var(--accent-soft); }
+.eq-ink { fill: none; }
+.eq-seam { fill: none; stroke-width: 1; opacity: .55; }
+.eq-tape { fill: currentColor; stroke: none; opacity: .18; }
+.chip .eq { margin-left: -6px; }
+.eq-chip { padding-left: var(--space-sm); }
+.zone-covers.with-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 12px; }
+.tool-i { display: inline-flex; align-items: center; gap: 4px; }
 .chip .ic { display: none; stroke-width: 2.4; }
 .chip[aria-pressed="true"] { background: var(--text); border-color: var(--text); color: var(--bg); }
 .chip[aria-pressed="true"] .ic, .chip.ctx .ic { display: block; }
@@ -498,7 +509,9 @@ body.no-nav #toast { bottom: var(--space-lg); }
 .fact { display: flex; flex-direction: column; gap: 1px; }
 .fact-label { font-size: var(--fs-label); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .fact-value { font-size: var(--fs-sm); font-weight: 600; display: flex; flex-wrap: wrap; gap: 2px var(--space-sm); }
-.tool { display: inline-flex; align-items: center; gap: 4px; }
+.tool { display: inline-flex; align-items: center; gap: 5px; }
+.tool .eq { color: var(--text); }
+.tool.warn .eq { opacity: .55; }
 .tool.ok { color: var(--ok-ink); }
 .tool.warn { color: var(--warn-ink); }
 

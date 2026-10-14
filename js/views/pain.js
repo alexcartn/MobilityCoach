@@ -5,6 +5,7 @@ import { EQUIPMENT } from '../data/profile.js';
 import { loadSettings } from '../settings.js';
 import { painRoutine, PAIN_ROLES, totalSeconds } from '../routine.js';
 import { duration } from './library.js';
+import { coversLine } from '../equip.js';
 import { loadAssessments, weakSides } from '../assessment.js';
 
 const ROLE_LABEL = { center: 'Sur la douleur', up: 'Amont', down: 'Aval' };
@@ -42,7 +43,7 @@ export async function render(root, params = []) {
         return h('li', { class: 'act-row' },
           h('a', { class: 'act-main', href: `#/library/${m.zone}/${m.id}` },
             h('span', { class: 'zone-name' }, m.name),
-            h('span', { class: 'zone-covers' }, `${duration(m)} · ${m.tools.length ? m.tools.map(equipLabel).join(', ') : 'sans matériel'}`),
+            coversLine(duration(m), m.tools),
           ),
           h('a', { class: 'play-btn', href: `#/session/mob/${m.id}`, 'aria-label': `Faire seulement : ${m.name}` }, icon('play', 18)),
         );

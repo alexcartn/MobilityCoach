@@ -3,6 +3,7 @@ import { ZONES } from '../data/zones.js';
 import { MOBS, SYSTEMS, METHODS, zoneMobs, getMob } from '../data/mobs.js';
 import { EQUIPMENT } from '../data/profile.js';
 import { renderFrame } from '../diagram.js';
+import { equipIcon, coversLine } from '../equip.js';
 import { mountFigure, hasMotion } from '../motion.js';
 import { renderBody, viewOf, zonesInView } from '../body.js';
 import { loadSettings } from '../settings.js';
@@ -151,7 +152,7 @@ async function renderIndex(root, initialZone) {
           return h('li', { class: 'act-row' },
             h('a', { class: 'act-main', href: `#/library/${zone.id}/${m.id}` },
               h('span', { class: 'zone-name' }, m.name),
-              h('span', { class: 'zone-covers' }, `${duration(m)} · ${m.tools.length ? m.tools.map(equipLabel).join(', ') : 'sans matériel'}`),
+              coversLine(duration(m), m.tools),
               (m.id === advised || missing.length)
                 ? h('span', { class: 'badges' },
                     m.id === advised ? h('span', { class: 'badge accent' }, 'Conseillée pour toi') : null,
@@ -265,7 +266,7 @@ async function renderMob(root, m) {
         fact('Matériel', m.tools.length
           ? m.tools.map((t) => {
               const have = s.equipment.includes(t);
-              return h('span', { class: `tool ${have ? 'ok' : 'warn'}` }, icon(have ? 'check' : 'warn', 14), equipLabel(t), have ? null : h('span', { class: 'visually-hidden' }, ' (pas dans ta liste)'));
+              return h('span', { class: `tool ${have ? 'ok' : 'warn'}` }, equipIcon(t, 22), equipLabel(t), icon(have ? 'check' : 'warn', 14), have ? null : h('span', { class: 'visually-hidden' }, ' (pas dans ta liste)'));
             })
           : 'Aucun'),
         fact('Moment', m.when === 'after' ? 'Plutôt après l\'effort' : 'À tout moment'),
