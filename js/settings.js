@@ -7,6 +7,8 @@ export const DEFAULTS = {
   equipment: ['ball', 'roller', 'band', 'box'],
   sound: true,
   vibrate: true,
+  voice: true, // annonce la fiche suivante à voix haute
+  flow: true, // les fiches s'enchaînent seules pendant la séance guidée
   theme: 'light',
 };
 

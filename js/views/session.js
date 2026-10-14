@@ -21,8 +21,10 @@ const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 // Ces séances ne touchent pas à la séance du jour.
 // Un « /library » en fin d'adresse : retour à la zone à la fin.
 // L'écran tient dans la fenêtre : minuteur en haut, schéma au milieu, barre d'action fixe en bas (Démarrer toujours sous le pouce).
-// La technique, le gainage, le son et la vibration sont dans une fenêtre « Technique ». Chaque fiche démarre quand tu appuies
-// sur « Démarrer » : pas de compte à rebours de mise en place ; seul le changement de côté (5 s) s'enchaîne seul.
+// La technique, le gainage, le son, la voix et l'enchaînement sont dans une fenêtre « Technique ».
+// Par défaut (réglage `flow`), une seule pression sur « Démarrer » : ensuite tout s'enchaîne seul, téléphone posé au loin :
+// compte à rebours « Prépare-toi » avant chaque fiche, changement de côté, bips, vibration et voix. Sans `flow`, chaque
+// fiche attend ton appui sur « Démarrer » ; seul le changement de côté (5 s) s'enchaîne seul.
 const ROLE_TEXT = { center: 'Sur la douleur', up: 'Amont', down: 'Aval' };
 
 export async function render(root, params = []) {
@@ -47,7 +49,8 @@ export async function render(root, params = []) {
     return;
   }
   const weak = weakSides(assessments.at(-1)?.merged ?? {});
-  const steps = stepsFor(routine.items, weak);
+  let flow = settings.flow !== false; // l'enchaînement automatique est la règle ; on peut le couper avant de démarrer
+  let steps = stepsFor(routine.items, weak, { flow });
   let total = steps.reduce((n, s) => n + s.seconds, 0);
   root.classList.add('has-bar');
 
@@ -60,7 +63,7 @@ export async function render(root, params = []) {
   let running = false;
   let started = false;
   let finished = false;
-  let ready = true; // une fiche qui commence attend ton « Démarrer »
+  let ready = true; // avant le premier appui sur « Démarrer » (et, sans enchaînement, au début de chaque fiche)
   let endAt = 0;
   let left = steps[0].seconds * 1000;
   let lastShown = null;
@@ -82,6 +85,16 @@ export async function render(root, params = []) {
     } catch { /* pas de son : tant pis */ }
   };
   const buzz = (pattern) => { if (settings.vibrate) navigator.vibrate?.(pattern); };
+  // La voix annonce la suite : téléphone posé au loin, on sait quoi faire sans regarder l'écran.
+  const say = (text) => {
+    if (!settings.voice || !('speechSynthesis' in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'fr-FR';
+      speechSynthesis.speak(u);
+    } catch { /* pas de voix : les bips restent */ }
+  };
 
   let wake = null;
   const acquireWake = async () => { try { wake = await navigator.wakeLock?.request('screen'); } catch { wake = null; } };
@@ -106,8 +119,10 @@ export async function render(root, params = []) {
   let fig = null; // le schéma de la fiche en cours : il s'anime en permanence
   const cue = h('p', { class: 's-cue' });
   const techBtn = h('button', { type: 'button', class: 'btn ghost-link s-tech' }, 'Voir la technique');
+  const nextLine = h('p', { class: 's-next' });
   const testBox = h('div');
   const prefs = h('div', { class: 'chips' });
+  const flowBox = h('div', { class: 'section', style: 'gap:var(--space-xs)' });
   const sheetBody = h('div', { class: 'sheet-body' });
   const sheet = h('dialog', { class: 'sheet', 'aria-labelledby': 'sh-t' }, sheetBody);
   sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.close(); }); // un appui sur le fond ferme
@@ -135,12 +150,41 @@ export async function render(root, params = []) {
 
   function paintPrefs() {
     prefs.replaceChildren(
-      ...[['sound', 'Son'], ['vibrate', 'Vibration']].map(([key, label]) =>
+      ...[['sound', 'Son'], ['vibrate', 'Vibration'], ['voice', 'Voix']].map(([key, label]) =>
         h('button', {
           type: 'button', class: 'chip quiet', 'aria-pressed': String(!!settings[key]),
           onClick: () => { settings[key] = !settings[key]; saveSettings(settings); paintPrefs(); },
         }, label)),
     );
+    flowBox.replaceChildren(...[
+      h('h3', { class: 'section-label' }, 'Enchaînement'),
+      h('div', { class: 'chips' },
+        h('button', {
+          type: 'button', class: 'chip quiet', 'aria-pressed': String(flow), disabled: started,
+          onClick: () => setFlow(!flow),
+        }, 'Enchaînement auto')),
+      h('p', { class: 'hint' }, flow
+        ? 'Les fiches et les côtés s\'enchaînent seuls : pose ton téléphone, le son et la voix te guident.'
+        : 'Chaque fiche attend ton appui sur « Démarrer ».'),
+      started ? h('p', { class: 'hint' }, 'À choisir avant de démarrer.') : null,
+    ].filter(Boolean)); // replaceChildren natif écrirait « null » pour une valeur vide
+  }
+
+  // Avant de démarrer seulement : les étapes sont recalculées depuis le début.
+  function setFlow(on) {
+    if (started) return;
+    flow = on;
+    settings.flow = on;
+    saveSettings(settings);
+    steps = stepsFor(routine.items, weak, { flow });
+    total = steps.reduce((n, s) => n + s.seconds, 0);
+    i = 0;
+    left = steps[0].seconds * 1000;
+    ready = true;
+    lastShown = null;
+    paintPrefs();
+    paintStep();
+    paintTime();
   }
 
   // La fenêtre « Technique » : les étapes, la mise en garde, le gainage, le son et la vibration.
@@ -161,6 +205,7 @@ export async function render(root, params = []) {
         h('h3', { class: 'section-label' }, 'Pendant la séance'),
         h('p', { class: 'hint' }, 'Visage détendu, respiration calme. Inconfort oui, douleur vive non. Tant que ça s\'améliore, tu peux rester plus longtemps : +30 s.'),
         prefs),
+      flowBox,
     ].filter(Boolean));
   }
 
@@ -190,12 +235,22 @@ export async function render(root, params = []) {
     barFill.style.transform = `scaleX(${Math.min(1, Math.max(0, 1 - left / blockMs))})`;
     const doneMs = steps.slice(0, i).reduce((n, x) => n + x.seconds * 1000, 0) + blockMs - left;
     remain.textContent = `reste ${Math.max(1, Math.ceil((total * 1000 - doneMs) / 60000))} min`;
-    const state = ready ? 'ready' : st.kind === 'prep' ? 'switch' : running ? 'run' : 'pause';
+    const state = ready ? 'ready' : st.kind === 'setup' ? 'setup' : st.kind === 'prep' ? 'switch' : running ? 'run' : 'pause';
     status.dataset.state = state;
-    status.textContent = { ready: started ? 'Fiche suivante : prêt ?' : 'Prêt ?', switch: `Change de côté : ${SIDE_LABELS[st.side].toLowerCase()}`, run: 'En cours', pause: 'En pause' }[state];
+    status.textContent = {
+      ready: flow ? 'Prêt ? Tout s\'enchaîne seul' : started ? 'Fiche suivante : prêt ?' : 'Prêt ?',
+      setup: 'Prépare-toi',
+      switch: `Change de côté : ${SIDE_LABELS[st.side].toLowerCase()}`,
+      run: 'En cours',
+      pause: 'En pause',
+    }[state];
     mainBtn.textContent = ready ? 'Démarrer' : running ? 'Pause' : 'Reprendre';
     skipBtn.textContent = i === steps.length - 1 ? 'Terminer' : 'Passer';
     techBtn.hidden = !ready; // avant de démarrer, on peut relire la technique ; en cours, seul le minuteur compte
+    // En cours : la suite en une ligne, lisible de loin.
+    const next = routine.items[st.mobIndex + 1];
+    nextLine.hidden = ready || state === 'setup';
+    nextLine.textContent = next ? `Ensuite : ${getMob(next.id).name}` : 'Dernière fiche';
   }
 
   // --- Logique du minuteur ------------------------------------------------------------
@@ -208,15 +263,20 @@ export async function render(root, params = []) {
   function go(n, signal = true) {
     i = n;
     left = steps[n].seconds * 1000;
-    ready = steps[n].kind === 'work' && steps[n].side === 0; // une nouvelle fiche attend ton « Démarrer »
+    // Enchaînement : seul le tout début attend ton appui. Sinon, chaque nouvelle fiche attend ton « Démarrer ».
+    ready = flow ? n === 0 && !started : steps[n].kind === 'work' && steps[n].side === 0;
     if (ready) running = false;
     else if (running) endAt = Date.now() + left;
     lastShown = null;
     paintStep();
     paintTime();
     if (signal) {
-      beep(steps[n].kind === 'work' ? 988 : 660, 220);
-      buzz(steps[n].kind === 'work' ? [200] : [80, 60, 80]);
+      const st = steps[n];
+      beep(st.kind === 'work' ? 988 : 660, 220);
+      buzz(st.kind === 'work' ? [200] : [80, 60, 80]);
+      const m = getMob(st.id);
+      if (st.kind === 'setup') say(`${m.name}${m.perSide ? `, ${SIDE_LABELS[st.side].toLowerCase()}` : ''}`);
+      else if (st.kind === 'prep') say(`Change de côté, ${SIDE_LABELS[st.side].toLowerCase()}`);
     }
   }
 
@@ -245,7 +305,9 @@ export async function render(root, params = []) {
     endAt = Date.now() + left;
     acquireWake();
     beep(988, 200);
+    if (flow) say(`${getMob(steps[0].id).name}${getMob(steps[0].id).perSide ? `, ${SIDE_LABELS[steps[0].side].toLowerCase()}` : ''}. Pose ton téléphone et prends la position.`);
     paintBefore();
+    paintPrefs();
     paintTime();
   }
 
@@ -271,10 +333,12 @@ export async function render(root, params = []) {
   });
 
   skipBtn.addEventListener('click', () => {
-    if (!started) { started = true; paintBefore(); }
-    if (ready) { // fiche pas encore commencée : on la saute en entier
+    const wasReady = ready;
+    if (!started) { started = true; paintBefore(); paintPrefs(); }
+    if (wasReady) { // fiche pas encore commencée : on la saute en entier
       const next = steps.findIndex((x) => x.mobIndex > steps[i].mobIndex);
       if (next < 0) return finish(false);
+      if (flow) { running = true; acquireWake(); } // l'enchaînement continue sur la fiche suivante
       return go(next);
     }
     advance();
@@ -331,7 +395,7 @@ export async function render(root, params = []) {
       );
     }
     paintAfter(null);
-    if (!stopped) { beep(1175, 400); buzz([300, 100, 300]); }
+    if (!stopped) { beep(1175, 400); buzz([300, 100, 300]); say('Séance terminée'); }
     root.replaceChildren(
       h('div', { class: 'session done' },
         h('header', { class: 'page-head' },
@@ -362,6 +426,7 @@ export async function render(root, params = []) {
     if (sheet.open) sheet.close();
     document.removeEventListener('visibilitychange', onVisible);
     audio?.close?.().catch(() => {});
+    try { speechSynthesis?.cancel(); } catch { /* rien à couper */ }
   };
 
   view.append(
@@ -370,7 +435,7 @@ export async function render(root, params = []) {
       h('div', { class: 's-prog' }, h('div', { class: 'meta-line' }, counter, remain), segs),
       infoBtn),
     h('section', { class: 'hero s-timer', 'aria-label': 'Minuteur' }, status, timer, bar),
-    h('section', { class: 's-stage' }, title, tags, figure, cue, techBtn, testBox),
+    h('section', { class: 's-stage' }, title, tags, figure, cue, techBtn, nextLine, testBox),
     sheet,
   );
   root.append(view, h('div', { class: 'bottom-bar session-bar' }, h('div', null, plusBtn, mainBtn, skipBtn)));

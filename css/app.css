@@ -492,7 +492,7 @@ main.has-bar:has(.session.live) { padding-bottom: calc(96px + env(safe-area-inse
 .s-prog .meta-line b { font-weight: 650; color: var(--text); }
 .s-timer { text-align: center; gap: 2px; padding: 12px 18px 16px; border-radius: var(--r-lg); }
 .s-status { margin: 0; font-size: var(--fs-label); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--hero-muted); }
-.s-status[data-state="ready"], .s-status[data-state="switch"] { color: var(--accent); }
+.s-status[data-state="ready"], .s-status[data-state="switch"], .s-status[data-state="setup"] { color: var(--accent); }
 .timer { font-family: var(--font-display); font-size: clamp(64px, 21vw, 92px); font-weight: 750; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .s-timer .bar { height: 6px; border-radius: 3px; background: var(--hero-line); overflow: hidden; margin-top: 10px; }
 .s-timer .bar > span { display: block; height: 100%; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform .25s linear; }
@@ -504,6 +504,8 @@ main.has-bar:has(.session.live) { padding-bottom: calc(96px + env(safe-area-inse
 .s-fig .fig { position: absolute; inset: 0; width: 100%; height: 100%; }
 .s-cue { margin: 0; text-align: center; font-size: 17px; line-height: 1.35; font-weight: 600; text-wrap: balance; }
 .s-tech { align-self: center; min-height: 40px; }
+.s-next { margin: 0; align-self: center; min-height: 40px; display: flex; align-items: center; font-size: var(--fs-sm); font-weight: 650; color: var(--muted); text-align: center; }
+.s-tech[hidden], .s-next[hidden] { display: none; }
 .s-test { display: flex; flex-direction: column; gap: 6px; }
 .s-test .head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-xs); font-size: var(--fs-sm); }
 .s-test .hint { font-size: var(--fs-label); }

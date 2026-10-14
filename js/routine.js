@@ -5,9 +5,10 @@
 import { MOBS, getMob } from './data/mobs.js';
 import { ZONES } from './data/zones.js';
 
-// Temps estimé pour se mettre en place entre deux fiches : il entre dans les durées annoncées, mais la séance n'a plus de
-// compte à rebours : chaque fiche démarre quand tu appuies sur « Démarrer ».
+// Temps pour se mettre en place entre deux fiches. Il entre dans les durées annoncées ; en séance, c'est un vrai compte à
+// rebours quand les fiches s'enchaînent seules (la première fiche en laisse un peu plus, le temps de poser le téléphone).
 export const SETUP_SECONDS = 10;
+export const FIRST_SETUP_SECONDS = 15;
 export const SWITCH_SECONDS = 5;
 export const DEFAULT_SECONDS = 120;
 export const MIN_SECONDS = 30;
@@ -143,12 +144,14 @@ export function buildRoutine(settings, zoneScores = null, { day = dayIndex() } =
 }
 
 // Découpe une séance en étapes pour le minuteur : un temps de travail par côté, et 5 s pour changer de côté.
-// Une fiche qui commence (côté 0) attend que tu appuies sur « Démarrer » : pas de compte à rebours de mise en place.
-export function stepsFor(items, weak = {}) {
+// flow : les fiches s'enchaînent seules, chacune précédée d'un compte à rebours « Prépare-toi ».
+// Sinon, une fiche qui commence (côté 0) attend que tu appuies sur « Démarrer ».
+export function stepsFor(items, weak = {}, { flow = false } = {}) {
   const steps = [];
   items.forEach((it, mobIndex) => {
     const m = getMob(it.id);
     const weakSide = m.perSide ? weak[m.zone] : null; // 'l' | 'r' | undefined
+    if (flow) steps.push({ kind: 'setup', id: m.id, label: 'Prépare-toi', seconds: mobIndex === 0 ? FIRST_SETUP_SECONDS : SETUP_SECONDS, mobIndex, side: 0 });
     for (let side = 0; side < sidesOf(m); side++) {
       if (side > 0) steps.push({ kind: 'prep', id: m.id, label: 'Change de côté', seconds: SWITCH_SECONDS, mobIndex, side });
       const bonus = (weakSide === 'l' && side === 0) || (weakSide === 'r' && side === 1) ? WEAK_SIDE_BONUS : 0;

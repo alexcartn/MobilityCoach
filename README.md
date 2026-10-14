@@ -23,6 +23,8 @@ Une fiche est un objet dans `js/data/mobs-*.js` (champs : voir `tools/check-mobs
 
 La séance du jour est calculée par `buildRoutine` (`js/routine.js`) d'après le contexte, les sports, la durée, le matériel et le dernier bilan. Elle tourne d'un jour à l'autre : la première moitié des fiches (les mieux notées) reste fixe, le reste est tiré selon la date parmi les fiches presque aussi pertinentes (`ROTATION_MARGIN`). Le tirage ne dépend que de la date locale : le même jour redonne la même séance. Une séance modifiée à la main n'est plus recalculée.
 
+La séance guidée (`js/views/session.js`) enchaîne les fiches toute seule par défaut (réglage `flow`) : un appui sur Démarrer, puis compte à rebours « Prépare-toi » avant chaque fiche, changement de côté, bips, vibration et voix (`speechSynthesis`) pour poser le téléphone au loin. L'enchaînement se coupe avant de démarrer, depuis la fenêtre « Technique » ; chaque fiche attend alors un appui sur Démarrer.
+
 Les textes sont des reformulations. Le livre (epub, pdf) ne doit jamais être commité : `.gitignore` le bloque.
 
 ## Polices
