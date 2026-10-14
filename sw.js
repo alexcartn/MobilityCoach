@@ -2,9 +2,17 @@
 // Le bloc stamp est réécrit par `node tools/stamp.mjs` : ne pas l'éditer à la main.
 
 // <stamp>
-const VERSION = 'ac27486779';
+const VERSION = '7963425221';
 const ASSETS = [
   "./",
+  "audio/voice-done.mp3",
+  "audio/voice-first.mp3",
+  "audio/voice-first_left.mp3",
+  "audio/voice-last.mp3",
+  "audio/voice-last_left.mp3",
+  "audio/voice-next.mp3",
+  "audio/voice-next_left.mp3",
+  "audio/voice-switch.mp3",
   "css/app.css",
   "fonts/bricolage-grotesque.woff2",
   "fonts/libre-franklin.woff2",
@@ -43,6 +51,7 @@ const ASSETS = [
   "js/routine.js",
   "js/sessions.js",
   "js/settings.js",
+  "js/sound.js",
   "js/stats.js",
   "js/store.js",
   "js/theme.js",

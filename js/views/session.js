@@ -9,6 +9,7 @@ import { logSession, updateLastSession } from '../sessions.js';
 import { loadAssessments, weakSides } from '../assessment.js';
 import { getTest, ZONE_TEST } from '../data/tests.js';
 import { getProtocol, resolveProtocol } from '../data/protocols.js';
+import { createSound, SOUND_THEMES } from '../sound.js';
 
 let teardown = null;
 export function cleanup() { teardown?.(); teardown = null; }
@@ -23,7 +24,7 @@ const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 // L'écran tient dans la fenêtre : minuteur en haut, schéma au milieu, barre d'action fixe en bas (Démarrer toujours sous le pouce).
 // La technique, le gainage, le son, la voix et l'enchaînement sont dans une fenêtre « Technique ».
 // Par défaut (réglage `flow`), une seule pression sur « Démarrer » : ensuite tout s'enchaîne seul, téléphone posé au loin :
-// compte à rebours « Prépare-toi » avant chaque fiche, changement de côté, bips, vibration et voix. Sans `flow`, chaque
+// compte à rebours « Prépare-toi » avant chaque fiche, changement de côté, cloches, vibration et phrases parlées (js/sound.js). Sans `flow`, chaque
 // fiche attend ton appui sur « Démarrer » ; seul le changement de côté (5 s) s'enchaîne seul.
 const ROLE_TEXT = { center: 'Sur la douleur', up: 'Amont', down: 'Aval' };
 
@@ -70,36 +71,15 @@ export async function render(root, params = []) {
   const worked = {}; // id -> secondes réellement travaillées
 
   // --- Son, vibration, écran allumé -------------------------------------------------
-  let audio;
-  const beep = (freq = 880, ms = 120) => {
-    if (!settings.sound) return;
-    try {
-      audio ??= new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audio.createOscillator();
-      const gain = audio.createGain();
-      osc.frequency.value = freq;
-      gain.gain.value = 0.15;
-      osc.connect(gain).connect(audio.destination);
-      osc.start();
-      osc.stop(audio.currentTime + ms / 1000);
-    } catch { /* pas de son : tant pis */ }
-  };
+  const sound = createSound(settings);
   const buzz = (pattern) => { if (settings.vibrate) navigator.vibrate?.(pattern); };
-  // La voix annonce la suite : téléphone posé au loin, on sait quoi faire sans regarder l'écran.
-  const say = (text) => {
-    if (!settings.voice || !('speechSynthesis' in window)) return;
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'fr-FR';
-      speechSynthesis.speak(u);
-    } catch { /* pas de voix : les bips restent */ }
-  };
+  // Phrase parlée pour une fiche : « première », « suivante » ou « dernière », avec le côté si elle se fait des deux côtés.
+  const spoken = (kind, mobIndex) => `${kind}${getMob(routine.items[mobIndex].id).perSide ? '_left' : ''}`;
 
   let wake = null;
   const acquireWake = async () => { try { wake = await navigator.wakeLock?.request('screen'); } catch { wake = null; } };
   const releaseWake = () => { wake?.release?.().catch(() => {}); wake = null; };
-  const onVisible = () => { if (!document.hidden && started && !finished) acquireWake(); };
+  const onVisible = () => { if (!document.hidden && started && !finished) { acquireWake(); sound.resume(); } };
   document.addEventListener('visibilitychange', onVisible);
 
   // --- Interface --------------------------------------------------------------------
@@ -121,7 +101,7 @@ export async function render(root, params = []) {
   const techBtn = h('button', { type: 'button', class: 'btn ghost-link s-tech' }, 'Voir la technique');
   const nextLine = h('p', { class: 's-next' });
   const testBox = h('div');
-  const prefs = h('div', { class: 'chips' });
+  const prefs = h('div', { class: 'section', style: 'gap:var(--space-xs)' });
   const flowBox = h('div', { class: 'section', style: 'gap:var(--space-xs)' });
   const sheetBody = h('div', { class: 'sheet-body' });
   const sheet = h('dialog', { class: 'sheet', 'aria-labelledby': 'sh-t' }, sheetBody);
@@ -149,12 +129,20 @@ export async function render(root, params = []) {
   }
 
   function paintPrefs() {
+    const toggle = (key, label, after) => h('button', {
+      type: 'button', class: 'chip quiet', 'aria-pressed': String(!!settings[key]),
+      onClick: () => { settings[key] = !settings[key]; saveSettings(settings); paintPrefs(); if (settings[key]) after?.(); },
+    }, label);
     prefs.replaceChildren(
-      ...[['sound', 'Son'], ['vibrate', 'Vibration'], ['voice', 'Voix']].map(([key, label]) =>
-        h('button', {
-          type: 'button', class: 'chip quiet', 'aria-pressed': String(!!settings[key]),
-          onClick: () => { settings[key] = !settings[key]; saveSettings(settings); paintPrefs(); },
-        }, label)),
+      h('div', { class: 'chips' },
+        toggle('sound', 'Son', () => sound.cue('setup')),
+        toggle('vibrate', 'Vibration', () => buzz([120])),
+        toggle('voice', 'Voix', () => { sound.unlock(); sound.say('next', 0.1); })),
+      h('h3', { class: 'section-label', style: 'margin-top:var(--space-sm)' }, 'Style du son'),
+      h('div', { class: 'chips' }, SOUND_THEMES.map((t) => h('button', {
+        type: 'button', class: 'chip quiet', 'aria-pressed': String((settings.soundTheme ?? 'bol') === t.id), disabled: !settings.sound,
+        onClick: () => { settings.soundTheme = t.id; saveSettings(settings); paintPrefs(); sound.cue('setup', t.id); },
+      }, t.label))),
     );
     flowBox.replaceChildren(...[
       h('h3', { class: 'section-label' }, 'Enchaînement'),
@@ -164,7 +152,7 @@ export async function render(root, params = []) {
           onClick: () => setFlow(!flow),
         }, 'Enchaînement auto')),
       h('p', { class: 'hint' }, flow
-        ? 'Les fiches et les côtés s\'enchaînent seuls : pose ton téléphone, le son et la voix te guident.'
+        ? 'Les fiches et les côtés s\'enchaînent seuls : pose ton téléphone, les sons et la voix te guident.'
         : 'Chaque fiche attend ton appui sur « Démarrer ».'),
       started ? h('p', { class: 'hint' }, 'À choisir avant de démarrer.') : null,
     ].filter(Boolean)); // replaceChildren natif écrirait « null » pour une valeur vide
@@ -272,11 +260,10 @@ export async function render(root, params = []) {
     paintTime();
     if (signal) {
       const st = steps[n];
-      beep(st.kind === 'work' ? 988 : 660, 220);
-      buzz(st.kind === 'work' ? [200] : [80, 60, 80]);
-      const m = getMob(st.id);
-      if (st.kind === 'setup') say(`${m.name}${m.perSide ? `, ${SIDE_LABELS[st.side].toLowerCase()}` : ''}`);
-      else if (st.kind === 'prep') say(`Change de côté, ${SIDE_LABELS[st.side].toLowerCase()}`);
+      sound.cue(st.kind === 'setup' ? 'setup' : st.kind === 'prep' ? 'switch' : ready ? 'setup' : 'go');
+      buzz(st.kind === 'work' && !ready ? [200] : [80, 60, 80]);
+      if (flow && st.kind === 'setup') sound.say(spoken(st.mobIndex === routine.items.length - 1 ? 'last' : 'next', st.mobIndex));
+      else if (flow && st.kind === 'prep') sound.say('switch');
     }
   }
 
@@ -293,19 +280,21 @@ export async function render(root, params = []) {
     if (secs !== lastShown) {
       lastShown = secs;
       paintTime();
-      if (secs > 0 && secs <= 3) beep(660, 80);
+      if (secs > 0 && secs <= 3 && steps[i].kind !== 'prep') sound.cue('tick'); // pas de toc pendant les 5 s de changement de côté
     }
     if (left <= 0) advance();
   }, 200);
 
   function start() {
+    const firstStart = !started;
     started = true;
     ready = false;
     running = true;
     endAt = Date.now() + left;
+    sound.unlock(); // l'appui autorise le son
     acquireWake();
-    beep(988, 200);
-    if (flow) say(`${getMob(steps[0].id).name}${getMob(steps[0].id).perSide ? `, ${SIDE_LABELS[steps[0].side].toLowerCase()}` : ''}. Pose ton téléphone et prends la position.`);
+    sound.cue(firstStart ? 'start' : 'go');
+    if (flow && firstStart) sound.say(spoken('first', 0));
     paintBefore();
     paintPrefs();
     paintTime();
@@ -333,6 +322,7 @@ export async function render(root, params = []) {
   });
 
   skipBtn.addEventListener('click', () => {
+    sound.unlock();
     const wasReady = ready;
     if (!started) { started = true; paintBefore(); paintPrefs(); }
     if (wasReady) { // fiche pas encore commencée : on la saute en entier
@@ -395,7 +385,7 @@ export async function render(root, params = []) {
       );
     }
     paintAfter(null);
-    if (!stopped) { beep(1175, 400); buzz([300, 100, 300]); say('Séance terminée'); }
+    if (!stopped) { sound.cue('end'); buzz([300, 100, 300]); sound.say('done'); }
     root.replaceChildren(
       h('div', { class: 'session done' },
         h('header', { class: 'page-head' },
@@ -425,8 +415,7 @@ export async function render(root, params = []) {
     releaseWake();
     if (sheet.open) sheet.close();
     document.removeEventListener('visibilitychange', onVisible);
-    audio?.close?.().catch(() => {});
-    try { speechSynthesis?.cancel(); } catch { /* rien à couper */ }
+    sound.destroy();
   };
 
   view.append(
