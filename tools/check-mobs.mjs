@@ -7,6 +7,8 @@ import { MOTIONS } from '../js/data/motions.js';
 import { ZONES } from '../js/data/zones.js';
 import { CONTEXTS, SPORTS, EQUIPMENT } from '../js/data/profile.js';
 import { skeleton } from '../js/diagram.js';
+import { PROTOCOLS, resolveProtocol } from '../js/data/protocols.js';
+import { totalSeconds, MIN_SECONDS } from '../js/routine.js';
 
 const errors = [];
 const warnings = [];
@@ -27,7 +29,7 @@ const ZONE_IDS = ZONES.map((z) => z.id);
 const TOOL_IDS = EQUIPMENT.map((e) => e.id);
 const PROP_TYPES = ['wall', 'focus', 'arrow', 'band', 'roller', 'box', 'ball', 'bar'];
 // Le matériel qui doit se voir sur le schéma (les balles et les bandes ont plusieurs variantes dessinées pareil).
-const TOOL_PROP = { ball: 'ball', peanut: 'ball', softball: 'ball', roller: 'roller', band: 'band', dowel: 'bar', box: 'box' };
+const TOOL_PROP = { ball: ['ball'], peanut: ['ball'], softball: ['ball'], roller: ['roller', 'bar'], band: ['band'], dowel: ['bar'], box: ['box'] }; // un rouleau vu du dessus est un tube
 
 const seen = new Set();
 for (const m of MOBS) {
@@ -95,8 +97,8 @@ for (const m of MOBS) {
     }
   });
   for (const t of m.tools ?? []) {
-    const prop = TOOL_PROP[t];
-    if (prop && !drawn.has(prop)) warn(id, `schéma : le matériel « ${t} » n'est pas dessiné (accessoire « ${prop} »)`);
+    const props = TOOL_PROP[t];
+    if (props && !props.some((x) => drawn.has(x))) warn(id, `schéma : le matériel « ${t} » n'est pas dessiné (accessoire « ${props.join('» ou «')} »)`);
   }
   if (!m.frames.some((f) => (f.props ?? []).some((p) => p.t === 'focus'))) warn(id, 'schéma : pas de zone travaillée (accessoire « focus »)');
 }
@@ -117,9 +119,28 @@ for (const [id, mo] of Object.entries(MOTIONS)) {
   }
 }
 
+// Protocoles : fiches connues, durées valides, dernière variante de chaque emplacement sans matériel
+const protoSeen = new Set();
+const protoLines = [];
+for (const p of PROTOCOLS) {
+  if (protoSeen.has(p.id)) err(p.id, 'protocole : id en double');
+  protoSeen.add(p.id);
+  if (!isText(p.name) || !isText(p.blurb) || !isText(p.when)) err(p.id, 'protocole : name, when et blurb sont attendus');
+  p.slots.forEach((slot, k) => {
+    const at = `protocole.slots[${k}]`;
+    if (!Number.isInteger(slot.seconds) || slot.seconds < MIN_SECONDS || slot.seconds > 300) err(p.id, `${at}.seconds : ${slot.seconds} (entier de ${MIN_SECONDS} à 300)`);
+    for (const id of slot.ids) if (!MOBS.some((m) => m.id === id)) err(p.id, `${at} : fiche « ${id} » inconnue`);
+    const last = MOBS.find((m) => m.id === slot.ids.at(-1));
+    if (last?.tools.length) err(p.id, `${at} : la dernière variante (« ${last.id} ») demande du matériel`);
+  });
+  const bare = resolveProtocol(p, []);
+  const full = resolveProtocol(p, EQUIPMENT.map((e) => e.id));
+  protoLines.push(`${p.id.padEnd(8)} ${String(Math.round(totalSeconds(bare) / 60)).padStart(2)} min sans matériel, ${String(Math.round(totalSeconds(full) / 60)).padStart(2)} min avec tout (${full.length} fiches)`);
+}
+
 // Bilan
 const perZone = ZONES.map((z) => `${String(z.id).padStart(2)} ${z.name.padEnd(20)} ${MOBS.filter((m) => m.zone === z.id).length}`);
-console.log(`${MOBS.length} fiches, ${Object.keys(MOTIONS).length} animées, ${MOBS.length - Object.keys(MOTIONS).length} fixes\n${perZone.join('\n')}\n`);
+console.log(`${MOBS.length} fiches, ${Object.keys(MOTIONS).length} animées, ${MOBS.length - Object.keys(MOTIONS).length} fixes\n${perZone.join('\n')}\n\nProtocoles\n${protoLines.join('\n')}\n`);
 for (const w of warnings) console.log(`avertissement  ${w}`);
 for (const e of errors) console.log(`ERREUR         ${e}`);
 console.log(`\n${errors.length} erreur(s), ${warnings.length} avertissement(s)`);

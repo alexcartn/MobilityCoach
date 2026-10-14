@@ -19,7 +19,7 @@ Sans `node tools/stamp.mjs`, les téléphones gardent l'ancienne version en cach
 
 ## Contenu
 
-Une fiche est un objet dans `js/data/mobs-*.js` (champs : voir `tools/check-mobs.mjs`), avec 1 ou 2 poses de schéma et, si elle bouge, une entrée dans `js/data/motions.js`. Son `kind` vaut `mobilize` (par défaut), `stretch` ou `activate`.
+Une fiche est un objet dans `js/data/mobs-*.js` (champs : voir `tools/check-mobs.mjs`), avec 1 ou 2 poses de schéma et, si elle bouge, une entrée dans `js/data/motions.js`. Son `kind` vaut `mobilize` (par défaut), `stretch` ou `activate`. Les séances prêtes à lancer (Réveil, Avant la course, Récupération, Bureau) sont dans `js/data/protocols.js` : une liste d'emplacements, chacun avec des variantes selon le matériel.
 
 Les textes sont des reformulations. Le livre (epub, pdf) ne doit jamais être commité : `.gitignore` le bloque.
 

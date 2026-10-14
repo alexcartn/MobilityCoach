@@ -8,6 +8,7 @@ import { BRACE } from '../data/rules.js';
 import { logSession, updateLastSession } from '../sessions.js';
 import { loadAssessments, weakSides } from '../assessment.js';
 import { getTest, ZONE_TEST } from '../data/tests.js';
+import { getProtocol, resolveProtocol } from '../data/protocols.js';
 
 let teardown = null;
 export function cleanup() { teardown?.(); teardown = null; }
@@ -16,7 +17,8 @@ const mmss = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String
 const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 
 // #/session : la séance du jour. #/session/7 : séance ciblée sur la zone 7 ; #/session/mob/couch : une seule fiche ;
-// #/session/pain/10 : « J'ai mal ici » (zone, amont, aval). Ces séances ne touchent pas à la séance du jour.
+// #/session/pain/10 : « J'ai mal ici » (zone, amont, aval) ; #/session/protocol/wake : une séance prête (js/data/protocols.js).
+// Ces séances ne touchent pas à la séance du jour.
 // Un « /library » en fin d'adresse : retour à la zone à la fin.
 const ROLE_TEXT = { center: 'sur la douleur', up: 'amont', down: 'aval' };
 
@@ -24,16 +26,19 @@ export async function render(root, params = []) {
   const [settings, assessments] = await Promise.all([loadSettings(), loadAssessments()]);
   const single = params[0] === 'mob' ? getMob(params[1]) : null;
   const pain = params[0] === 'pain' ? Number(params[1]) || null : null;
-  const zoneId = single || pain ? null : Number(params[0]) || null;
+  const protocol = params[0] === 'protocol' ? getProtocol(params[1]) : null;
+  const zoneId = single || pain || protocol ? null : Number(params[0]) || null;
   const routine = single
     ? { items: [{ id: single.id, seconds: defaultSeconds(single) }] }
-    : pain
+    : protocol
+      ? { items: resolveProtocol(protocol, settings.equipment) }
+      : pain
       ? { items: painRoutine(pain, settings.equipment, { budget: settings.duration * 60, scores: assessments.at(-1)?.scores ?? null }).items }
       : zoneId
         ? { items: zoneRoutine(zoneId, settings.equipment) }
         : await store.get('routine', null);
-  const fromLibrary = !!single || !!pain || params[1] === 'library';
-  const backHref = single ? `#/library/${single.zone}/${single.id}` : pain ? `#/pain/${pain}` : fromLibrary ? `#/library/${zoneId}` : '#/today';
+  const fromLibrary = !!single || !!pain || !!protocol || params[1] === 'library';
+  const backHref = single ? `#/library/${single.zone}/${single.id}` : protocol ? `#/protocol/${protocol.id}` : pain ? `#/pain/${pain}` : fromLibrary ? `#/library/${zoneId}` : '#/today';
   if (!routine?.items?.length) {
     location.hash = '#/today';
     return;
@@ -274,7 +279,7 @@ export async function render(root, params = []) {
     if (logged) {
       await logSession({
         at: new Date().toISOString(), seconds, items, contexts: settings.contexts,
-        kind: single ? 'mob' : pain ? 'pain' : zoneId ? 'zone' : 'daily',
+        kind: single ? 'mob' : protocol ? 'protocol' : pain ? 'pain' : zoneId ? 'zone' : 'daily',
         ...(quickTest && before ? { test: { id: quickTest.id, zone: testZone, before } } : {}),
       });
     }
@@ -315,7 +320,7 @@ export async function render(root, params = []) {
           h('p', { class: 'small' }, 'Refais le test de la position que tu voulais améliorer : as-tu gagné en amplitude ou en stabilité ? Sans changement visible, la zone n\'était peut-être pas la bonne.'),
         ),
         h('div', { class: 'btn-row stretch' },
-          h('a', { class: 'btn primary big', href: backHref }, single ? 'Retour à la fiche' : pain ? 'Retour au plan' : fromLibrary ? 'Retour à la zone' : 'Retour'),
+          h('a', { class: 'btn primary big', href: backHref }, single ? 'Retour à la fiche' : protocol ? 'Retour à la séance' : pain ? 'Retour au plan' : fromLibrary ? 'Retour à la zone' : 'Retour'),
           h('a', { class: 'btn big', href: '#/progress' }, 'Mon suivi'),
         ),
       ),

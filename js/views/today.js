@@ -4,6 +4,7 @@ import { loadSettings, saveSettings } from '../settings.js';
 import { MOBS, getMob } from '../data/mobs.js';
 import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, minSecondsFor, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS, WEAK_SIDE_BONUS } from '../routine.js';
 import { TESTS } from '../data/tests.js';
+import { PROTOCOLS, resolveProtocol } from '../data/protocols.js';
 import { RULES } from '../data/rules.js';
 import { equipIcon } from '../equip.js';
 import * as store from '../store.js';
@@ -40,6 +41,7 @@ export async function render(root) {
   const editBtn = h('button', { type: 'button', class: 'btn light', 'aria-expanded': 'false', 'aria-controls': 'edit-panel' }, 'Modifier');
   const editPanel = h('section', { class: 'card edit-panel', id: 'edit-panel', hidden: true, 'aria-label': 'Modifier ma séance' });
   const sportsBox = h('div');
+  const protoBox = h('section', { class: 'section', 'aria-labelledby': 'proto-t' });
   const warnBox = h('div');
   const tipBox = h('div');
 
@@ -211,6 +213,21 @@ export async function render(root) {
       );
     }
 
+    // Séances prêtes : la durée suit le matériel coché et le côté le plus raide du bilan.
+    protoBox.replaceChildren(
+      h('div', { class: 'section-head' },
+        h('h2', { id: 'proto-t', class: 'section-title' }, 'Séances prêtes'),
+        h('span', { class: 'hint' }, 'Selon ton matériel')),
+      h('ul', { class: 'list' }, PROTOCOLS.map((p) => {
+        const minutes = Math.max(1, Math.round(totalSeconds(resolveProtocol(p, s.equipment), weak) / 60));
+        return h('li', { class: 'act-row' },
+          h('a', { class: 'act-main', href: `#/protocol/${p.id}` },
+            h('span', { class: 'zone-name' }, p.name),
+            h('span', { class: 'zone-covers' }, `${minutes} min · ${p.when}`)),
+          h('a', { class: 'play-btn', href: `#/session/protocol/${p.id}`, 'aria-label': `Lancer : ${p.name}, ${minutes} minutes` }, icon('play', 18)));
+      })),
+    );
+
     warnBox.replaceChildren();
     for (const c of CONTEXTS.filter((x) => x.warning && s.contexts.includes(x.id))) {
       warnBox.append(h('p', { class: 'callout warn' }, icon('warn'), h('span', null, c.warning)));
@@ -298,6 +315,7 @@ export async function render(root) {
     ),
     editPanel,
     ...(lastAssessment ? [bilanRow()] : []),
+    protoBox,
 
     h('section', { class: 'section' },
       h('div', { class: 'section-head' },
