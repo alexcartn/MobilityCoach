@@ -453,8 +453,8 @@ const CORE = [
     frames: [
       {
         caption: 'Assis penché en arrière, balle sous le fessier, genou qui tombe vers l\'extérieur.',
-        torso: -140, head: -135,
-        legs: [{ thigh: -35, shin: 100, foot: 0 }, { thigh: -40, shin: 95, foot: 0 }],
+        torso: -121.5, head: -117,
+        legs: [{ thigh: -32.5, shin: 79, foot: 0 }, { thigh: -33.5, shin: 85.5, foot: 0 }],
         arms: [{ upper: 100, fore: 90 }],
         props: [
           { t: 'ball', at: ['hip', 0, 10] },

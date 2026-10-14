@@ -98,7 +98,7 @@ export const TESTS = [
     ],
     frame: {
       caption: 'À quatre pattes, mains à plat, bras tendus.',
-      torso: 0, head: -20,
+      torso: -17.5, head: -38,
       legs: [{ thigh: 90, shin: 180, foot: 180 }],
       arms: [{ upper: 90, fore: 90 }],
       props: [{ t: 'focus', at: ['hand', 0, -3], r: 11 }],
@@ -122,7 +122,7 @@ export const TESTS = [
     ],
     frame: {
       caption: 'Penché depuis les hanches, jambes tendues, dos plat.',
-      torso: 40, head: 45,
+      torso: 26, head: 32,
       legs: [{ thigh: 90, shin: 90, foot: 0 }],
       arms: [{ upper: 90, fore: 90 }],
       props: [{ t: 'focus', at: ['knee', -8, 6], r: 12 }],

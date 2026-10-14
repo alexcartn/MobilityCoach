@@ -108,7 +108,7 @@ export const MOTIONS = {
   },
 
   // Balle sous l'arrière du bras : le coude plie et tend.
-  triceps_smash: { period: 6, still: TOOLS, end: { arms: [{ upper: 30, fore: 22 }] } },
+  triceps_smash: { period: 6, still: TOOLS, end: { arms: [{ upper: -12, fore: -8 }] } },
 
   // À genoux, paume au sol : le buste descend vers l'avant, le coude plie contre la bande.
   elbow_extension_band: { period: 6, anchor: 'knee', hands: true, still: TOOLS, stillEnds: { band: ['to'] }, end: { torso: -22, head: -34 } },

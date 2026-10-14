@@ -342,7 +342,7 @@ export const HIPS = [
     frames: [
       {
         caption: 'À quatre pattes, genou sous la hanche, bande qui tire le pli de la hanche.',
-        torso: -5, head: -20,
+        torso: -17.5, head: -33,
         legs: [{ thigh: 90, shin: 180, foot: 180 }, { thigh: 90, shin: 180, foot: 180 }],
         arms: [{ upper: 90, fore: 90 }],
         props: [{ t: 'band', from: ['hip', 0, 2], to: ['hip', -34, -8] }, { t: 'focus', at: ['hip', 0, 0], r: 14 }],

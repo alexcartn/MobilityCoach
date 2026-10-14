@@ -142,14 +142,14 @@ export const LOT_3 = [
       {
         caption: 'À plat ventre, bras en Y posés devant toi, pouces vers le haut.',
         torso: 0, head: 0,
-        legs: [{ thigh: 180, shin: 180, foot: 100 }, { thigh: 180, shin: 180, foot: 100 }],
+        legs: [{ thigh: 180, shin: 180, foot: 180 }, { thigh: 180, shin: 180, foot: 180 }],
         arms: [{ upper: 0, fore: 0 }],
         props: [{ t: 'focus', at: ['upperback', 0, 0], r: 14 }],
       },
       {
         caption: 'Les bras décollent du sol, omoplates basses, cou long.',
         torso: 0, head: 0,
-        legs: [{ thigh: 180, shin: 180, foot: 100 }, { thigh: 180, shin: 180, foot: 100 }],
+        legs: [{ thigh: 180, shin: 180, foot: 180 }, { thigh: 180, shin: 180, foot: 180 }],
         arms: [{ upper: -28, fore: -28 }],
         props: [{ t: 'focus', at: ['upperback', 0, 0], r: 14 }],
       },
@@ -290,7 +290,7 @@ export const LOT_3 = [
     frames: [
       {
         caption: 'À quatre pattes, paumes à plat : le corps bascule vers l\'avant au-dessus des mains.',
-        torso: 0, head: -20,
+        torso: -17.5, head: -38,
         legs: [{ thigh: 90, shin: 180, foot: 180 }, { thigh: 90, shin: 180, foot: 180 }],
         arms: [{ upper: 90, fore: 90 }],
         props: [
@@ -422,14 +422,14 @@ export const LOT_3 = [
     frames: [
       {
         caption: 'À quatre pattes, dos plat, mains sous les épaules et genoux sous les hanches.',
-        torso: 0, head: -8,
+        torso: -17.5, head: -26,
         legs: [{ thigh: 90, shin: 180, foot: 180 }, { thigh: 90, shin: 180, foot: 180 }],
         arms: [{ upper: 90, fore: 90 }, { upper: 90, fore: 90 }],
         props: [{ t: 'focus', at: ['lowback', 0, 0], r: 13 }],
       },
       {
         caption: 'Un bras et la jambe opposée s\'allongent à l\'horizontale, le dos reste plat.',
-        torso: 0, head: -8,
+        torso: -17.5, head: -26,
         legs: [{ thigh: 90, shin: 180, foot: 180 }, { thigh: 178, shin: 178, foot: 120 }],
         arms: [{ upper: -2, fore: -2 }, { upper: 90, fore: 90 }],
         props: [{ t: 'focus', at: ['lowback', 0, 0], r: 13 }],

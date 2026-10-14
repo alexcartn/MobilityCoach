@@ -214,7 +214,7 @@ export const LOT_4 = [
     frames: [
       {
         caption: 'Penché en avant, jambes tendues, mains au bout des pieds.',
-        torso: 40, head: 45,
+        torso: 29.5, head: 36,
         legs: [{ thigh: 90, shin: 90, foot: 0 }],
         arms: [{ upper: 105, fore: 110 }],
         props: [{ t: 'focus', at: ['thigh', -2, 3], r: 13 }],

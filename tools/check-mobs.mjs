@@ -4,6 +4,7 @@
 
 import { MOBS, SYSTEMS, METHODS, KINDS } from '../js/data/mobs.js';
 import { MOTIONS } from '../js/data/motions.js';
+import { TESTS } from '../js/data/tests.js';
 import { ZONES } from '../js/data/zones.js';
 import { CONTEXTS, SPORTS, EQUIPMENT } from '../js/data/profile.js';
 import { skeleton } from '../js/diagram.js';
@@ -30,6 +31,32 @@ const TOOL_IDS = EQUIPMENT.map((e) => e.id);
 const PROP_TYPES = ['wall', 'focus', 'arrow', 'band', 'roller', 'box', 'ball', 'bar'];
 // Le matériel qui doit se voir sur le schéma (les balles et les bandes ont plusieurs variantes dessinées pareil).
 const TOOL_PROP = { ball: ['ball'], peanut: ['ball'], softball: ['ball'], roller: ['roller', 'bar'], band: ['band'], dowel: ['bar'], box: ['box'] }; // un rouleau vu du dessus est un tube
+
+// Appuis : la figure est posée sur son point le plus bas. Si les mains ou les coudes touchent le sol, un genou à plat
+// (tibia horizontal sous la hanche) ou un pied posé doit le toucher aussi, sinon il flotte. Sans accessoire (balle, rouleau,
+// boîte), c'est un défaut de dessin ; avec, c'est souvent voulu (un tibia posé sur un rouleau) et on ne signale rien.
+const rad = (d) => (d * Math.PI) / 180;
+const flatAngle = (a) => Math.abs(Math.sin(rad(a))) < 0.38;
+function floatingSupports(f) {
+  const J = skeleton(f);
+  const [legA, legB = legA] = f.legs;
+  const [armA, armB = armA] = f.arms ?? [{ upper: 90, fore: 90 }];
+  const cand = [];
+  for (const [k, g] of [['', legA], ['2', legB]]) {
+    const ankle = J['ankle' + k], toe = J['toe' + k], knee = J['knee' + k];
+    const heel = [ankle[0] - Math.cos(rad(g.foot ?? 0)) * 2.6, ankle[1] - Math.sin(rad(g.foot ?? 0)) * 2.6];
+    cand.push({ n: `genou${k}`, y: knee[1] + 4.6, flat: flatAngle(g.shin) && knee[1] - J.hip[1] > 14 });
+    cand.push({ n: `pied${k}`, y: Math.max(heel[1] + 3.1, toe[1] + 2.1), flat: flatAngle(g.foot ?? 0) && ankle[1] - knee[1] > 8 && Math.abs(g.shin - 90) < 70 });
+  }
+  for (const [k, g] of [['', armA], ['2', armB]]) {
+    cand.push({ n: `main${k}`, y: J['hand' + k][1] + Math.sin(rad(g.fore)) * 5.2 + 2.2, support: true });
+    cand.push({ n: `coude${k}`, y: J['elbow' + k][1] + 3.1, support: true });
+  }
+  cand.push({ n: 'hanche', y: J.hip[1] + 7.8, support: true });
+  const floor = Math.max(...cand.map((c) => c.y));
+  if (!cand.some((c) => c.support && floor - c.y <= 1.5)) return [];
+  return cand.filter((c) => c.flat && floor - c.y > 3.5).map((c) => `${c.n} flotte de ${(floor - c.y).toFixed(1)}`);
+}
 
 const seen = new Set();
 for (const m of MOBS) {
@@ -81,6 +108,9 @@ for (const m of MOBS) {
     f.legs.forEach((g, k) => { if (!isNum(g.thigh) || !isNum(g.shin)) err(id, `${at}.legs[${k}] : thigh et shin sont des angles`); });
     (f.arms ?? []).forEach((g, k) => { if (!isNum(g.upper) || !isNum(g.fore)) err(id, `${at}.arms[${k}] : upper et fore sont des angles`); });
     if (f.view !== undefined && f.view !== 'top') err(id, `${at}.view : « top » ou rien`);
+    if (f.view !== 'top' && !(f.props ?? []).some((p) => ['ball', 'roller', 'bar', 'box'].includes(p.t))) {
+      for (const msg of floatingSupports(f)) warn(id, `${at} : ${msg} unités au-dessus du sol alors que les mains ou le bassin posent (revoir les angles)`);
+    }
     let J;
     try { J = skeleton(f); } catch (e) { return err(id, `${at} : pose illisible (${e.message})`); }
     for (const [k, p] of (f.props ?? []).entries()) {
@@ -101,6 +131,11 @@ for (const m of MOBS) {
     if (props && !props.some((x) => drawn.has(x))) warn(id, `schéma : le matériel « ${t} » n'est pas dessiné (accessoire « ${props.join('» ou «')} »)`);
   }
   if (!m.frames.some((f) => (f.props ?? []).some((p) => p.t === 'focus'))) warn(id, 'schéma : pas de zone travaillée (accessoire « focus »)');
+}
+
+// Tests du bilan : même contrôle des appuis
+for (const t of TESTS) {
+  for (const msg of floatingSupports(t.frame)) warn(`test ${t.id}`, `${msg} unités au-dessus du sol alors que les mains ou le bassin posent (revoir les angles)`);
 }
 
 // Mouvements

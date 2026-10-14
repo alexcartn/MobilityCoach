@@ -495,7 +495,7 @@ export const LOT_2 = [
       {
         caption: 'Allongé sur le dos, genoux pliés, pieds à plat.',
         torso: 180, head: 180,
-        legs: [{ thigh: -55, shin: 61, foot: 0 }, { thigh: -55, shin: 61, foot: 0 }],
+        legs: [{ thigh: -51, shin: 90, foot: 0 }, { thigh: -51, shin: 90, foot: 0 }],
         arms: [{ upper: 5, fore: 5 }],
         props: [{ t: 'focus', at: ['hip', 2, 0], r: 13 }],
       },

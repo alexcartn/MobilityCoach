@@ -34,9 +34,9 @@ export const REST = [
       {
         caption: 'Allongé, balle sous l\'arrière du bras, le coude plie et tend.',
         torso: 178, head: 178,
-        legs: [{ thigh: -55, shin: 75, foot: 0 }, { thigh: -52, shin: 72, foot: 0 }],
-        arms: [{ upper: 30, fore: -50 }],
-        props: [{ t: 'ball', at: ['elbow', -2, 9] }, { t: 'focus', at: ['elbow', -2, 4], r: 11 }],
+        legs: [{ thigh: -55, shin: 90, foot: 0 }, { thigh: -52, shin: 81.5, foot: 0 }],
+        arms: [{ upper: -12, fore: -80 }],
+        props: [{ t: 'ball', at: ['elbow', -2, 7.5] }, { t: 'focus', at: ['elbow', -2, 3], r: 11 }],
       },
     ],
   },
@@ -212,7 +212,7 @@ export const REST = [
     frames: [
       {
         caption: 'À quatre pattes, bande au poignet, la base de la main plaquée, le bras avance.',
-        torso: -10, head: -20,
+        torso: -17.5, head: -28,
         legs: [{ thigh: 90, shin: 180, foot: 180 }, { thigh: 90, shin: 180, foot: 180 }],
         arms: [{ upper: 90, fore: 90 }],
         props: [{ t: 'wall', at: ['hand', -60, 0], h: 40 }, { t: 'band', from: ['hand', -2, -2], to: ['hand', -60, -2] }, { t: 'focus', at: ['hand', 0, -3], r: 11 }, { t: 'arrow', from: ['shoulder', -6, 8], to: ['shoulder', 10, 8] }],
