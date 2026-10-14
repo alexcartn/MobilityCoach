@@ -235,4 +235,22 @@ export const MOTIONS = {
 
   // À genoux devant la boîte, coudes posés : le corps recule et se baisse pour ajouter de la tension.
   bilateral_shoulder_flexion: { period: 6, anchor: 'knee', hands: 'forearm', still: TOOLS, end: { torso: -44, head: -56, legs: [{ thigh: 76, shin: 180, foot: 180 }] } },
+
+  // À quatre pattes, genoux écartés : les hanches glissent vers l'arrière, les genoux restent posés.
+  adductor_frog_rock: { period: 6, slide: { angle: 180, from: 0, to: -14 }, feet: true },
+
+  // Assis, plantes jointes : le buste s'incline vers les pieds, les mains les tiennent.
+  butterfly_fold: { period: 7, end: { torso: -12, head: -4 }, anchor: 'hip', rigidArms: true },
+
+  // Debout face au mur, le pied reste posé : le genou se tend contre la bande puis se replie.
+  knee_tke_band: { period: 5, anchor: 'ankle', still: TOOLS, stillEnds: { band: ['to'] } },
+
+  // Le talon avant reste au sol, le genou avance vers le mur, les mains restent sur le mur.
+  soleus_wall_bent: { period: 6, anchor: 'ankle', hands: true, still: TOOLS, end: { legs: [{ thigh: 46, shin: 118, foot: 0 }, { thigh: 100, shin: 100, foot: 0 }] } },
+
+  // Chien tête en bas : les genoux se plient à tour de rôle, les mains restent au sol.
+  calf_downdog_pedal: { period: 6, hands: true },
+
+  // Le pied reste à plat, le genou avance jusqu'au mur.
+  ankle_wall_knee_drive: { period: 6, anchor: 'ankle', hands: true, still: TOOLS, end: { legs: [{ thigh: 52, shin: 118, foot: 0 }, { thigh: 100, shin: 100, foot: 0 }] } },
 };
