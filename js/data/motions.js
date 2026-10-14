@@ -280,4 +280,25 @@ export const MOTIONS = {
 
   // Le bassin monte, les épaules et les pieds restent posés.
   glute_bridge_hold: { period: 6, anchor: 'shoulder', feet: true },
+
+  // À genoux, coudes sur le banc : la poitrine descend entre les bras, les coudes restent posés.
+  tspine_bench_prayer: { period: 7, anchor: 'knee', still: TOOLS },
+
+  // Vue du dessus : le bras du dessus s'ouvre en arc, la tête le suit, le bassin ne bouge pas.
+  open_book_rotation: { period: 7, anchor: 'hip' },
+
+  // À plat ventre : les bras décollent du sol.
+  prone_y_raise: { period: 5, anchor: 'hip' },
+
+  // Les bras montent jusqu'au mur derrière la tête.
+  wall_overhead_reach: { period: 6, still: TOOLS },
+
+  // À quatre pattes : le corps bascule vers l'avant au-dessus des mains, qui restent posées.
+  wrist_quadruped_rock: { period: 6, slide: { angle: 0, from: 0, to: 10 }, hands: true, feet: true },
+
+  // Sur le dos : un bras part derrière la tête, la jambe opposée s'allonge, le bassin reste au sol.
+  dead_bug_slow: { period: 7, anchor: 'hip' },
+
+  // À quatre pattes : un bras et la jambe opposée s'allongent, le genou et la main d'appui restent posés.
+  bird_dog_slow: { period: 7, anchor: 'knee' },
 };
