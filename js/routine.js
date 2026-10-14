@@ -37,7 +37,42 @@ export const zonesOf = (items) => new Set(items.map((it) => getMob(it.id).zone))
 // Les zones les moins mobiles d'après le bilan passent en premier.
 const needBoost = (score) => (score === null || score === undefined ? 0 : score < 25 ? 2 : score < 50 ? 1.5 : score < 65 ? 0.7 : 0);
 
-export function buildRoutine(settings, zoneScores = null) {
+// Rotation : la moitié des fiches (les mieux notées) restent d'un jour à l'autre ; l'autre moitié est tirée, selon la date,
+// parmi les fiches presque aussi pertinentes (à ROTATION_MARGIN points du meilleur score du contexte).
+export const ROTATION_MARGIN = 1;
+
+// Numéro du jour (heure locale) : change à minuit, identique toute la journée.
+export const dayIndex = (d = new Date()) => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000);
+
+// Petit générateur pseudo-aléatoire à graine : le même jour redonne toujours le même tirage.
+function seeded(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// Mélange la tête d'une file (les fiches proches du meilleur score) : le reste garde son ordre.
+function shuffleHead(queue, scoreOf, day, salt) {
+  if (queue.length < 2) return queue;
+  const top = scoreOf(queue[0]);
+  const n = queue.findIndex((m) => scoreOf(m) < top - ROTATION_MARGIN);
+  const head = queue.slice(0, n === -1 ? queue.length : n);
+  const rand = seeded(day * 7919 + salt * 104729);
+  for (let i = head.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [head[i], head[j]] = [head[j], head[i]];
+  }
+  return [...head, ...queue.slice(head.length)];
+}
+
+// settings : durée, contextes, sports, matériel. zoneScores : scores 0-100 du dernier bilan.
+// { day } : numéro du jour de la rotation (par défaut aujourd'hui) ; le même jour redonne toujours la même séance.
+export function buildRoutine(settings, zoneScores = null, { day = dayIndex() } = {}) {
   const budget = settings.duration * 60;
   const wanted = PHASES.filter((c) => settings.contexts.includes(c));
   const hasScores = !!zoneScores && Object.values(zoneScores).some((v) => v !== null && v !== undefined);
@@ -58,7 +93,7 @@ export function buildRoutine(settings, zoneScores = null) {
     return base + (c === 'sport' && m.sports?.some((s) => settings.sports.includes(s)) ? 1 : 0)
       + (hasScores ? needBoost(zoneScores[m.zone]) : 0);
   };
-  const queues = Object.fromEntries(active.map((c) => [
+  const ranked = Object.fromEntries(active.map((c) => [
     c,
     usable
       .filter((m) => score(m, c) > 0)
@@ -66,27 +101,43 @@ export function buildRoutine(settings, zoneScores = null) {
   ]));
 
   const cost = (m) => itemSeconds({ id: m.id, seconds: defaultSeconds(m) });
-  const chosen = [];
-  const zones = new Set();
-  let used = 0;
-  let added = true;
-  while (added) {
-    added = false;
-    for (const c of active) {
-      // La douleur prend la plus grosse part de la séance.
-      for (let k = 0; k < (c === 'back' || c === 'need' ? 2 : 1); k++) {
-        const m = queues[c].find((x) =>
-          !chosen.some((y) => y.id === x.id)
-          && (zones.has(x.zone) || zones.size < MAX_ZONES)
-          && used + cost(x) <= budget);
-        if (!m) break;
-        chosen.push({ id: m.id, seconds: defaultSeconds(m), phase: c === 'need' ? -1 : PHASES.indexOf(c) });
-        zones.add(m.zone);
-        used += cost(m);
-        added = true;
+  // Remplit la séance : un tour par contexte (deux fiches pour la douleur), jusqu'à ce que plus rien ne rentre.
+  // `chosen` peut déjà contenir des fiches imposées (les piliers).
+  function fill(queues, chosen = []) {
+    const picked = chosen.slice();
+    const zones = new Set(picked.map((it) => getMob(it.id).zone));
+    let used = picked.reduce((n, it) => n + cost(getMob(it.id)), 0);
+    let added = true;
+    while (added) {
+      added = false;
+      for (const c of active) {
+        // La douleur prend la plus grosse part de la séance.
+        for (let k = 0; k < (c === 'back' || c === 'need' ? 2 : 1); k++) {
+          const m = queues[c].find((x) =>
+            !picked.some((y) => y.id === x.id)
+            && (zones.has(x.zone) || zones.size < MAX_ZONES)
+            && used + cost(x) <= budget);
+          if (!m) break;
+          picked.push({ id: m.id, seconds: defaultSeconds(m), phase: c === 'need' ? -1 : PHASES.indexOf(c) });
+          zones.add(m.zone);
+          used += cost(m);
+          added = true;
+        }
       }
     }
+    return picked;
   }
+
+  // 1. La séance de référence (sans rotation) ; sa première moitié devient les piliers fixes.
+  const reference = fill(ranked);
+  // Une séance d'une seule fiche n'a pas de pilier : elle tourne parmi les mieux notées.
+  const pillars = reference.slice(0, reference.length <= 1 ? 0 : Math.ceil(reference.length / 2));
+  // 2. Le reste est complété avec des files mélangées selon le jour.
+  const rotated = Object.fromEntries(active.map((c, i) => [
+    c,
+    shuffleHead(ranked[c], (m) => score(m, c), day, i + 1),
+  ]));
+  const chosen = fill(rotated, pillars);
   chosen.sort((a, b) => a.phase - b.phase); // tri stable : l'ordre de choix est conservé dans une phase
   return { items: chosen.map(({ id, seconds }) => ({ id, seconds })), fallback };
 }

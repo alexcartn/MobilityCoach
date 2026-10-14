@@ -37,6 +37,7 @@ export async function render(root) {
   const heroTags = h('div', { class: 'hero-tags' });
   const heroList = h('ol', { class: 'hero-list' });
   const heroNote = h('p', { class: 'hero-note' });
+  const heroRota = h('p', { class: 'hero-rota' }, 'Une partie de la séance change chaque jour pour varier les positions.');
   const startBtn = h('a', { class: 'btn primary big', role: 'button' }, 'Démarrer la séance');
   const editBtn = h('button', { type: 'button', class: 'btn light', 'aria-expanded': 'false', 'aria-controls': 'edit-panel' }, 'Modifier');
   const editPanel = h('section', { class: 'card edit-panel', id: 'edit-panel', hidden: true, 'aria-label': 'Modifier ma séance' });
@@ -99,6 +100,7 @@ export async function render(root) {
     }
     heroNote.textContent = notes.join(' ');
     heroNote.hidden = notes.length === 0;
+    heroRota.hidden = !routine.auto || items.length === 0;
 
     if (items.length) {
       startBtn.setAttribute('href', '#/session');
@@ -310,6 +312,7 @@ export async function render(root) {
       ),
       heroTags,
       heroList,
+      heroRota,
       heroNote,
       h('div', { class: 'hero-actions' }, startBtn, editBtn),
     ),

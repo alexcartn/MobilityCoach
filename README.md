@@ -21,6 +21,8 @@ Sans `node tools/stamp.mjs`, les téléphones gardent l'ancienne version en cach
 
 Une fiche est un objet dans `js/data/mobs-*.js` (champs : voir `tools/check-mobs.mjs`), avec 1 ou 2 poses de schéma et, si elle bouge, une entrée dans `js/data/motions.js`. Son `kind` vaut `mobilize` (par défaut), `stretch` ou `activate`. Les séances prêtes à lancer (Réveil, Avant la course, Récupération, Bureau) sont dans `js/data/protocols.js` : une liste d'emplacements, chacun avec des variantes selon le matériel.
 
+La séance du jour est calculée par `buildRoutine` (`js/routine.js`) d'après le contexte, les sports, la durée, le matériel et le dernier bilan. Elle tourne d'un jour à l'autre : la première moitié des fiches (les mieux notées) reste fixe, le reste est tiré selon la date parmi les fiches presque aussi pertinentes (`ROTATION_MARGIN`). Le tirage ne dépend que de la date locale : le même jour redonne la même séance. Une séance modifiée à la main n'est plus recalculée.
+
 Les textes sont des reformulations. Le livre (epub, pdf) ne doit jamais être commité : `.gitignore` le bloque.
 
 ## Polices
