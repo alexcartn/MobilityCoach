@@ -2,7 +2,8 @@ import { h, chipGroup, icon } from '../ui.js';
 import { CONTEXTS, SPORTS, EQUIPMENT, DURATIONS } from '../data/profile.js';
 import { loadSettings, saveSettings } from '../settings.js';
 import { MOBS, getMob } from '../data/mobs.js';
-import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, minSecondsFor, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS } from '../routine.js';
+import { buildRoutine, totalSeconds, zonesOf, defaultSeconds, fmtSeconds, minSecondsFor, MIN_SECONDS, MAX_ZONES, DEFAULT_SECONDS, WEAK_SIDE_BONUS } from '../routine.js';
+import { TESTS } from '../data/tests.js';
 import { RULES } from '../data/rules.js';
 import { equipIcon } from '../equip.js';
 import * as store from '../store.js';
@@ -218,25 +219,42 @@ export async function render(root) {
     paintTips();
   }
 
-  // Pas de bilan : on le propose. Re-test proche ou dû : on le rappelle.
-  function assessmentBanner() {
-    if (!lastAssessment) {
-      return h('a', { class: 'banner', href: '#/bilan' },
-        h('span', { class: 'cal-icon' }, icon('retest', 22)),
-        h('span', { class: 'txt' }, h('b', null, 'Fais ton bilan de mobilité'), h('span', null, '8 tests · 15 min · une routine qui cible ce qui te freine')),
-        icon('chevronRight', 18));
+  // Pas de bilan : on l'explique en haut de l'écran, c'est lui qui règle la séance sur le corps.
+  function bilanPitch() {
+    const ids = TESTS.map((t) => t.id);
+    const points = [
+      'Tes zones les plus raides d\'abord.',
+      `Le côté le plus raide gagne ${WEAK_SIDE_BONUS} s.`,
+      'Tu mesures tes progrès au re-test.',
+    ];
+    return h('section', { class: 'card accent pitch', 'aria-labelledby': 'pitch-t' },
+      h('span', { class: 'kicker' }, 'Pour commencer'),
+      h('h2', { id: 'pitch-t' }, 'Fais ton bilan de mobilité'),
+      h('p', null, 'Il règle ta séance sur ton corps, pas seulement sur ton contexte :'),
+      h('ol', { class: 'pitch-points' }, points.map((t, i) =>
+        h('li', null, h('span', { class: 'n', 'aria-hidden': 'true' }, String(i + 1)), h('span', null, t)))),
+      h('a', { class: 'btn dark big', href: '#/bilan' }, `Faire le bilan · ${totalMinutes(ids)} min`, icon('arrowRight', 18)),
+      h('p', { class: 'pitch-meta' }, `${ids.length} tests : un mur, de la place au sol, une chaise.`),
+    );
+  }
+
+  // Bilan fait : re-test proche ou dû, on le rappelle ; sinon une ligne discrète suffit.
+  function bilanRow() {
+    if (plan?.date) {
+      const days = daysUntil(plan.date);
+      if (days <= 7) {
+        const d = fromDateKey(plan.date);
+        const ids = plan.type === 'full' ? null : pickTargetTests(lastAssessment.scores);
+        return h('a', { class: 'banner', href: days <= 0 ? (plan.type === 'full' ? '#/bilan' : '#/bilan/target') : '#/retest' },
+          h('span', { class: 'cal-icon' }, h('small', null, MONTH.format(d).replace('.', '')), h('b', null, String(d.getDate()))),
+          h('span', { class: 'txt' },
+            h('b', null, days < 0 ? 'Re-test en retard : on le fait ?' : days === 0 ? 'C\'est le jour du re-test' : days === 1 ? 'Re-test demain' : `Re-test dans ${days} jours`),
+            h('span', null, ids ? `${ids.length} tests · ${totalMinutes(ids)} min` : 'Bilan complet · 15 min')),
+          icon('chevronRight', 18));
+      }
     }
-    if (!plan?.date) return null;
-    const days = daysUntil(plan.date);
-    if (days > 7) return null;
-    const d = fromDateKey(plan.date);
-    const ids = plan.type === 'full' ? null : pickTargetTests(lastAssessment.scores);
-    return h('a', { class: 'banner', href: days <= 0 ? (plan.type === 'full' ? '#/bilan' : '#/bilan/target') : '#/retest' },
-      h('span', { class: 'cal-icon' }, h('small', null, MONTH.format(d).replace('.', '')), h('b', null, String(d.getDate()))),
-      h('span', { class: 'txt' },
-        h('b', null, days < 0 ? 'Re-test en retard : on le fait ?' : days === 0 ? 'C\'est le jour du re-test' : days === 1 ? 'Re-test demain' : `Re-test dans ${days} jours`),
-        h('span', null, ids ? `${ids.length} tests · ${totalMinutes(ids)} min` : 'Bilan complet · 15 min')),
-      icon('chevronRight', 18));
+    const d = new Date(lastAssessment.at);
+    return h('a', { class: 'quiet-row', href: '#/progress' }, `Bilan du ${d.getDate()} ${MONTH.format(d).replace('.', '')} · voir mes scores`, icon('chevronRight', 16));
   }
 
   root.append(
@@ -245,6 +263,7 @@ export async function render(root) {
       h('span', { class: 'eyebrow' }, dateLabel()),
       h('h1', { class: 'page-title' }, 'Aujourd\'hui'),
     ),
+    ...(lastAssessment ? [] : [bilanPitch()]), // spread : append natif écrirait « null » pour une valeur vide
 
     h('section', { class: 'section', style: 'gap:var(--space-xs)', 'aria-labelledby': 'time-t' },
       h('div', { class: 'section-head' },
@@ -278,7 +297,7 @@ export async function render(root) {
       h('div', { class: 'hero-actions' }, startBtn, editBtn),
     ),
     editPanel,
-    ...[assessmentBanner()].filter(Boolean), // append natif écrirait « null » sans bandeau
+    ...(lastAssessment ? [bilanRow()] : []),
 
     h('section', { class: 'section' },
       h('div', { class: 'section-head' },

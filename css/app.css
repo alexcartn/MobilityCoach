@@ -472,6 +472,22 @@ button.row { cursor: pointer; }
 .banner .txt b { font-weight: 700; }
 .banner .txt span { font-size: var(--fs-sm); }
 
+/* Pas encore de bilan : le panneau fauve pâle explique pourquoi il règle la séance (js/views/today.js). */
+.pitch { gap: var(--space-sm); }
+.pitch .kicker { color: var(--accent-soft-ink); }
+.pitch h2 { font-size: var(--fs-xl); font-weight: 750; letter-spacing: -.02em; line-height: 1.08; }
+.pitch p { margin: 0; }
+.pitch-points { list-style: none; margin: var(--space-2xs) 0 var(--space-xs); padding: 0; }
+.pitch-points li { display: flex; gap: var(--space-md); align-items: baseline; padding: var(--space-xs) 0; border-top: 1px solid color-mix(in oklab, currentColor 22%, transparent); }
+.pitch-points .n { flex: none; width: 18px; font-family: var(--font-display); font-weight: 750; font-variant-numeric: tabular-nums; }
+.pitch .btn { width: 100%; }
+.pitch-meta { font-size: var(--fs-sm); }
+/* Bilan fait : une ligne discrète, sans fond. */
+.quiet-row {
+  display: inline-flex; align-items: center; gap: var(--space-2xs); align-self: flex-start;
+  min-height: 44px; color: var(--muted); font-size: var(--fs-sm); font-weight: 600; text-decoration: none;
+}
+
 /* ---------- Séance guidée ---------- */
 body.no-nav .tabbar { display: none; }
 body.no-nav { padding-bottom: var(--space-lg); }
