@@ -253,4 +253,31 @@ export const MOTIONS = {
 
   // Le pied reste à plat, le genou avance jusqu'au mur.
   ankle_wall_knee_drive: { period: 6, anchor: 'ankle', hands: true, still: TOOLS, end: { legs: [{ thigh: 52, shin: 118, foot: 0 }, { thigh: 100, shin: 100, foot: 0 }] } },
+
+  // Couché sur le côté : le corps glisse le long de la cuisse, le rouleau reste en place.
+  it_band_roller: { period: 7, slide: { angle: 0, from: -10, to: 10 }, still: TOOLS, refS: 0.5 },
+
+  // Les hanches reculent sur la chaise, les pieds restent posés, la chaise ne bouge pas.
+  chair_squat_tempo: { period: 6, anchor: 'ankle', feet: true, still: TOOLS },
+
+  // Les orteils se relèvent, les talons restent au sol.
+  toe_raise_wall: { period: 4, still: TOOLS },
+
+  // Montée sur les pointes : le corps monte de la hauteur du pied qui se redresse, les mains restent sur le mur.
+  calf_raise_slow: { period: 5, hands: true, slide: { angle: -90, from: 0, to: 8 }, still: TOOLS },
+
+  // Pointer, puis ramener les orteils : seul le pied tourne autour de la cheville.
+  ankle_pump_long_sit: { period: 4 },
+
+  // La tête recule contre le mur.
+  chin_tuck_wall: { period: 5, still: TOOLS },
+
+  // La jambe libre passe de l'avant à l'arrière comme un pendule.
+  leg_swing_front_back: { period: 4 },
+
+  // Le genou monte vers la poitrine, le pied d'appui reste posé.
+  knee_hug_standing: { period: 5, anchor: 'ankle2' },
+
+  // Le bassin monte, les épaules et les pieds restent posés.
+  glute_bridge_hold: { period: 6, anchor: 'shoulder', feet: true },
 };

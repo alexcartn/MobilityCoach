@@ -141,6 +141,7 @@ export function makeAnimation(spec, facing = 1) {
   const mx = (pt) => (facing === -1 ? [-pt[0], pt[1]] : pt);
   const baseProps = (kfA.props ?? []).map((p) => {
     if (still.has(p.t) && p.at) return { ...p, at: mx(ref(p.at, J0, 1)) };
+    if (still.has(p.t) && p.from && p.to) return { ...p, from: mx(ref(p.from, J0, 1)), to: mx(ref(p.to, J0, 1)) }; // un tube vu du dessus
     if (p.t === 'band' && spec.stillEnds?.band?.length) {
       const ends = spec.stillEnds.band;
       return { ...p, ...(ends.includes('from') ? { from: mx(ref(p.from, J0, 1)) } : {}), ...(ends.includes('to') ? { to: mx(ref(p.to, J0, 1)) } : {}) };
