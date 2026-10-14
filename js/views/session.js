@@ -168,7 +168,6 @@ export async function render(root, params = []) {
   }
 
   function paintTime() {
-    fig?.setPlaying(started && running && steps[i].kind === 'work');
     const secs = Math.ceil(left / 1000);
     timer.textContent = mmss(secs);
     const before = steps.slice(0, i).reduce((n, s) => n + s.seconds * 1000, 0);

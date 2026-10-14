@@ -188,41 +188,26 @@ export function motionSpec(mob) {
 }
 export const hasMotion = (mob) => !!MOTIONS[mob.id];
 
-const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-// Monte le schéma d'une fiche dans `host`. Sans mouvement défini, c'est l'image fixe d'avant.
-// setPlaying(true) lance la boucle ; setPlaying(false) fige sur l'image en cours (pas de saut en arrière).
-// Sans { force }, la boucle ne démarre pas si l'appareil demande de réduire les animations (lancement automatique) ;
-// avec { force }, c'est une demande de la personne et on joue.
+// Monte le schéma d'une fiche dans `host`. Le mouvement joue en boucle dès l'affichage : ce n'est pas une option,
+// ni dans la séance ni sur la fiche (il ignore donc aussi la demande « réduire les animations » du téléphone).
+// Sans mouvement défini dans js/data/motions.js, c'est l'image fixe. destroy() arrête la boucle en quittant l'écran.
 export function mountFigure(host, mob, { facing = 1, label = mob.name } = {}) {
   const spec = motionSpec(mob);
   if (!spec) {
     host.replaceChildren(renderPose({ ...mob.frames[0], facing, label }));
-    return { animated: false, isPlaying: () => false, setPlaying() {}, destroy() {} };
+    return { destroy() {} };
   }
   const anim = makeAnimation(spec, facing);
-  // Au repos : la pose de départ, avec sa flèche, dans le cadre du mouvement (pas de saut au démarrage).
-  host.replaceChildren(anim.draw(0, label, true));
-  let raf = 0;
-  let playing = false;
   let t = 0;
-  let last = 0;
+  let last = performance.now();
+  let raf = 0;
   const frame = (now) => {
     t += Math.min((now - last) / 1000, 0.1); // un onglet en veille ne fait pas sauter l'animation
     last = now;
     host.replaceChildren(anim.draw(wave((t / anim.period) % 1), label));
     raf = requestAnimationFrame(frame);
   };
-  return {
-    animated: true,
-    isPlaying: () => playing,
-    setPlaying(on, { force = false } = {}) {
-      if (on === playing) return;
-      if (on && reduceMotion() && !force) return;
-      playing = on;
-      cancelAnimationFrame(raf);
-      if (on) { last = performance.now(); raf = requestAnimationFrame(frame); }
-    },
-    destroy() { playing = false; cancelAnimationFrame(raf); },
-  };
+  host.replaceChildren(anim.draw(0, label)); // première image sans attendre le premier tour de boucle
+  raf = requestAnimationFrame(frame);
+  return { destroy() { cancelAnimationFrame(raf); } };
 }

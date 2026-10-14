@@ -25,22 +25,12 @@ export function duration(m) {
 let figs = [];
 export function cleanup() { figs.forEach((f) => f.destroy()); figs = []; }
 
-// Première image d'une fiche qui a un mouvement : le schéma, sa légende et un bouton pour le voir bouger.
-// La boucle ne démarre que sur demande : l'écran reste calme.
+// Première image d'une fiche qui a un mouvement : le schéma joue en boucle dès l'ouverture, avec sa légende.
 function motionFrame(m, total) {
   const host = h('div');
-  const fig = mountFigure(host, m);
-  figs.push(fig);
-  const btn = h('button', { type: 'button', class: 'btn small motion-btn' });
-  const paint = () => {
-    const on = fig.isPlaying();
-    btn.setAttribute('aria-pressed', String(on));
-    btn.replaceChildren(icon(on ? 'pause' : 'play', 18), on ? 'Pause' : 'Voir le mouvement');
-  };
-  btn.addEventListener('click', () => { fig.setPlaying(!fig.isPlaying(), { force: true }); paint(); });
-  paint();
+  figs.push(mountFigure(host, m));
   const caption = m.frames[0].caption;
-  return h('figure', { class: 'frame' }, host, h('figcaption', null, total > 1 ? `1. ${caption}` : caption), h('div', { class: 'motion-bar' }, btn));
+  return h('figure', { class: 'frame' }, host, h('figcaption', null, total > 1 ? `1. ${caption}` : caption));
 }
 
 // #/library : le corps. #/library/7 : le corps avec la zone 7 choisie. #/library/7/couch : une fiche.

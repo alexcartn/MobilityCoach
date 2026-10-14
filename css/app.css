@@ -432,10 +432,8 @@ button.row { cursor: pointer; }
 .fig .band-loop { fill: none; stroke: var(--accent); stroke-width: 1.6; }
 .fig .arrow { stroke: var(--accent); stroke-width: 2.4; fill: none; stroke-linecap: round; }
 .fig .arrow-head { fill: var(--accent); }
-/* Schéma animé : le rayon qui montre le rouleau rouler, et le bouton sous la légende. */
+/* Schéma animé : le rayon qui montre le rouleau rouler. */
 .fig .roller-spoke { stroke: var(--text); stroke-width: .9; stroke-linecap: round; }
-.motion-bar { display: flex; padding-top: var(--space-xs); }
-.motion-btn { gap: 6px; }
 
 /* ---------- Aujourd'hui ---------- */
 .hero-list { list-style: none; margin: 0; padding: 0; }
