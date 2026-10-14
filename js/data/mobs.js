@@ -10,6 +10,7 @@ import { REST } from './mobs-rest.js';
 import { LOT_1 } from './mobs-lot-1.js';
 import { LOT_2 } from './mobs-lot-2.js';
 import { LOT_3 } from './mobs-lot-3.js';
+import { LOT_4 } from './mobs-lot-4.js';
 
 export const SYSTEMS = {
   joint: 'Articulation',
@@ -510,7 +511,7 @@ export const KINDS = {
 };
 
 // Liste complète : fiches du tronc et de la hanche (ici), puis haut du corps et jambes.
-export const MOBS = [...CORE, ...UPPER, ...LOWER, ...HIPS, ...LOWERLEG, ...SHOULDERS, ...REST, ...LOT_1, ...LOT_2, ...LOT_3].map((m) => ({ kind: 'mobilize', ...m }));
+export const MOBS = [...CORE, ...UPPER, ...LOWER, ...HIPS, ...LOWERLEG, ...SHOULDERS, ...REST, ...LOT_1, ...LOT_2, ...LOT_3, ...LOT_4].map((m) => ({ kind: 'mobilize', ...m }));
 
 export const zoneMobs = (zoneId) => MOBS.filter((m) => m.zone === zoneId);
 export const getMob = (id) => MOBS.find((m) => m.id === id);

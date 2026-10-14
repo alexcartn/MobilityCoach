@@ -301,4 +301,29 @@ export const MOTIONS = {
 
   // À quatre pattes : un bras et la jambe opposée s'allongent, le genou et la main d'appui restent posés.
   bird_dog_slow: { period: 7, anchor: 'knee' },
+
+  // Debout, talon devant : le buste se penche un peu plus à plat, les pieds restent posés.
+  hamstring_heel_forward: { period: 7, anchor: 'ankle2', feet: true, end: { torso: -24, head: -36, arms: [{ upper: 66, fore: 56 }] } },
+
+  // Assis au bord de la chaise : le buste se penche vers la jambe tendue, la chaise reste en place.
+  hamstring_chair_fold: { period: 7, anchor: 'ankle2', still: TOOLS, end: { torso: -20, head: -32, arms: [{ upper: 58, fore: 48 }] } },
+
+  // Les hanches reculent, les pieds restent posés, les mains descendent vers les genoux.
+  hip_hinge_drill: { period: 6, anchor: 'ankle', feet: true },
+
+  // Sur une jambe : le buste penche et l'autre jambe part derrière, le pied d'appui reste posé.
+  single_leg_hinge: { period: 7, anchor: 'ankle2' },
+
+  // De la charnière au squat profond : les pieds restent posés, les mains restent aux pieds.
+  squat_to_stand: { period: 8, anchor: 'ankle', feet: true },
+
+  // Le genou appuie sur la serviette qui reste en place.
+  quad_set_towel: { period: 5, anchor: 'hip', still: TOOLS },
+
+  // Marche sur les talons puis sur les pointes : les jambes passent l'une devant l'autre.
+  heel_walk: { period: 5 },
+  toe_walk: { period: 5 },
+
+  // À genoux sur une jambe : le genou arrière reste au sol, le pied avant reste posé, les hanches avancent.
+  kneeling_hip_flexor: { period: 7, anchor: 'knee2', feet: [''] },
 };
