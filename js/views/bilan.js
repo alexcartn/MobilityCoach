@@ -1,8 +1,12 @@
 import { h, icon, toast } from '../ui.js';
 import { TESTS, getTest } from '../data/tests.js';
 import { ZONES } from '../data/zones.js';
-import { renderFrame } from '../diagram.js';
+import { mountFigure } from '../motion.js';
 import { loadAssessments, addAssessment, loadDraft, saveDraft, clearDraft, isAnswered, pickTargetTests, totalMinutes } from '../assessment.js';
+
+// Le schéma animé du test en cours : arrêté quand on change de test ou qu'on quitte l'écran (app.js appelle cleanup).
+let fig = null;
+export function cleanup() { fig?.destroy(); fig = null; }
 
 // #/bilan : bilan complet (8 tests). #/bilan/target : re-test ciblé sur les zones prioritaires.
 export async function render(root, params = []) {
@@ -53,6 +57,9 @@ export async function render(root, params = []) {
 
   function paintTest(focusSelected = false) {
     const t = tests[i];
+    fig?.destroy();
+    const host = h('div');
+    fig = mountFigure(host, t, { label: t.title });
     const a = answers[t.id] ?? {};
     const key = t.sides ? side : 'v';
     const current = a[key];
@@ -92,7 +99,7 @@ export async function render(root, params = []) {
             tests.map((_, n) => h('span', { class: n < i ? 'done' : n === i ? 'cur' : null }))),
         ),
       ),
-      renderFrame(t.frame, 0, 1),
+      h('figure', { class: 'frame' }, host, h('figcaption', null, t.frame.caption)),
       h('div', { class: 'section', style: 'gap:8px' },
         h('h1', { class: 'page-title', style: 'font-size:30px' }, t.title),
         h('div', { class: 'badges' }, t.zones.map(([id]) => h('span', { class: 'badge accent' }, `${id} · ${ZONES.find((z) => z.id === id).name}`))),

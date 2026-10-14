@@ -1,7 +1,7 @@
 // Bilan de mobilité : 8 tests, chacun noté de 0 à 4, qui alimentent le score des 13 zones.
 // Chaque test cite les zones qu'il éclaire avec un poids (le premier est la zone principale).
 // Les niveaux sont des repères observables, formulés pour ce bilan : ils ne viennent pas tels quels du livre.
-// Les schémas utilisent le moteur de js/diagram.js.
+// Les schémas utilisent le moteur de js/diagram.js ; chaque test porte son mouvement (`motion`), joué par js/motion.js.
 
 export const TESTS = [
   {
@@ -25,6 +25,8 @@ export const TESTS = [
       arms: [{ upper: -8, fore: -8 }],
       props: [{ t: 'focus', at: ['hip', 0, 0], r: 13 }],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 7, anchor: 'ankle', feet: true, begin: { torso: -90, head: -90, legs: [{ thigh: 90, shin: 90, foot: 0 }], arms: [{ upper: -8, fore: -8 }] } },
   },
   {
     id: 'overhead',
@@ -50,6 +52,8 @@ export const TESTS = [
         { t: 'focus', at: ['shoulder', -2, -4], r: 12 },
       ],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 6, still: ['wall'], begin: { arms: [{ upper: 90, fore: 90 }] } },
   },
   {
     id: 'reachback',
@@ -75,6 +79,8 @@ export const TESTS = [
         { t: 'arrow', from: ['hip', -16, 2], to: ['hip', -16, -22] },
       ],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 5, begin: { arms: [{ upper: 62, fore: 70 }] } },
   },
   {
     id: 'wrist',
@@ -97,6 +103,8 @@ export const TESTS = [
       arms: [{ upper: 90, fore: 90 }],
       props: [{ t: 'focus', at: ['hand', 0, -3], r: 11 }],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 6, slide: { angle: 0, from: 0, to: 10 }, hands: true, feet: true },
   },
   {
     id: 'hinge',
@@ -119,6 +127,8 @@ export const TESTS = [
       arms: [{ upper: 90, fore: 90 }],
       props: [{ t: 'focus', at: ['knee', -8, 6], r: 12 }],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 6, begin: { torso: -90, head: -90 } },
   },
   {
     id: 'couch',
@@ -144,6 +154,8 @@ export const TESTS = [
         { t: 'focus', at: ['thigh', 0, 0], r: 14 },
       ],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 6, anchor: 'knee', still: ['wall'], begin: { torso: -62, head: -72, arms: [{ upper: 130, fore: 28 }] } },
   },
   {
     id: 'kneeflex',
@@ -166,6 +178,8 @@ export const TESTS = [
       arms: [{ upper: 75, fore: 25 }],
       props: [{ t: 'focus', at: ['knee', -6, 0], r: 12 }],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 6, anchor: 'knee', begin: { torso: -90, head: -90, legs: [{ thigh: 90, shin: 177, foot: 180 }, { thigh: 90, shin: 177, foot: 180 }] } },
   },
   {
     id: 'ankle',
@@ -191,6 +205,8 @@ export const TESTS = [
         { t: 'focus', at: ['ankle', 3, -2], r: 11 },
       ],
     },
+    // Le mouvement du test : du départ (begin) jusqu'à la pose de l'image (voir js/motion.js).
+    motion: { period: 6, anchor: 'knee2', feet: [''], hands: true, still: ['wall'], begin: { legs: [{ thigh: 24, shin: 100, foot: 0 }, { thigh: 90, shin: 180, foot: 180 }] } },
   },
 ];
 

@@ -178,24 +178,27 @@ export function makeAnimation(spec, facing = 1) {
   return { draw, period: spec.period, joints: (s) => solve(s).J, box };
 }
 
-// La spécification complète d'une fiche : ses images, plus ce que dit js/data/motions.js.
-export function motionSpec(mob) {
-  const m = MOTIONS[mob.id];
+// La spécification complète d'une fiche ou d'un test du bilan : ses images, plus son mouvement. Une fiche garde son
+// mouvement dans js/data/motions.js ; un test le porte lui-même (`motion`) et n'a qu'une image (`frame`) : c'est la pose
+// d'arrivée, `begin` décrit le départ.
+export function motionSpec(item) {
+  const m = item.motion ?? MOTIONS[item.id];
   if (!m) return null;
-  const a = m.begin ? { ...mob.frames[0], ...m.begin } : mob.frames[0];
-  const b = m.end ? { ...a, ...m.end } : (mob.frames[1] ?? a);
-  const dir = m.faces ? (m.faces === 'left' ? -1 : 1) : orientation(mob.frames[0]);
+  const frames = item.frames ?? [item.frame];
+  const a = m.begin ? { ...frames[0], ...m.begin } : frames[0];
+  const b = m.end ? { ...a, ...m.end } : (frames[1] ?? (m.begin ? frames[0] : a));
+  const dir = m.faces ? (m.faces === 'left' ? -1 : 1) : orientation(frames[0]);
   return { ...m, dir, frames: [a, b] };
 }
-export const hasMotion = (mob) => !!MOTIONS[mob.id];
+export const hasMotion = (item) => !!(item.motion ?? MOTIONS[item.id]);
 
 // Monte le schéma d'une fiche dans `host`. Le mouvement joue en boucle dès l'affichage : ce n'est pas une option,
 // ni dans la séance ni sur la fiche (il ignore donc aussi la demande « réduire les animations » du téléphone).
 // Sans mouvement défini dans js/data/motions.js, c'est l'image fixe. destroy() arrête la boucle en quittant l'écran.
-export function mountFigure(host, mob, { facing = 1, label = mob.name } = {}) {
-  const spec = motionSpec(mob);
+export function mountFigure(host, item, { facing = 1, label = item.name ?? item.title } = {}) {
+  const spec = motionSpec(item);
   if (!spec) {
-    host.replaceChildren(renderPose({ ...mob.frames[0], facing, label }));
+    host.replaceChildren(renderPose({ ...(item.frames?.[0] ?? item.frame), facing, label }));
     return { destroy() {} };
   }
   const anim = makeAnimation(spec, facing);
