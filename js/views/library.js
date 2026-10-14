@@ -1,6 +1,6 @@
-import { h, icon, toast } from '../ui.js';
+import { h, icon, toast, chipGroup } from '../ui.js';
 import { ZONES } from '../data/zones.js';
-import { MOBS, SYSTEMS, METHODS, zoneMobs, getMob } from '../data/mobs.js';
+import { MOBS, SYSTEMS, METHODS, KINDS, zoneMobs, getMob } from '../data/mobs.js';
 import { EQUIPMENT } from '../data/profile.js';
 import { renderFrame } from '../diagram.js';
 import { equipIcon, coversLine } from '../equip.js';
@@ -53,6 +53,19 @@ function rankMobs(zoneId, settings) {
 }
 
 // --- Index : la silhouette, la zone choisie et ses fiches --------------------------------------
+// Au-delà de ce nombre de fiches dans une zone, une rangée de filtres apparaît au-dessus de la liste.
+const FILTER_FROM = 8;
+function filterOptions(mobs, settings) {
+  const have = new Set(settings.equipment);
+  const kinds = [...new Set(mobs.map((m) => m.kind))];
+  return [
+    { id: 'all', label: 'Tout' },
+    { id: 'mine', label: 'Mon matériel', keep: (m) => m.tools.every((t) => have.has(t)) },
+    mobs.some((m) => !m.tools.length) && { id: 'bare', label: 'Sans matériel', keep: (m) => !m.tools.length },
+    ...(kinds.length > 1 ? kinds.map((k) => ({ id: k, label: KINDS[k], keep: (m) => m.kind === k })) : []),
+  ].filter(Boolean);
+}
+
 async function renderIndex(root, initialZone) {
   const [settings, assessments] = await Promise.all([loadSettings(), loadAssessments()]);
   const last = assessments.at(-1);
@@ -64,6 +77,8 @@ async function renderIndex(root, initialZone) {
   let selected = ZONES.some((z) => z.id === initialZone) ? initialZone : (hasScores ? priorities(scores, 1)[0]?.id ?? null : null);
   let view = selected ? viewOf(selected) : 'front';
   let query = '';
+  let filter = 'all'; // filtre de la liste de fiches d'une zone ; revient à « Tout » quand on change de zone
+  let filterZone = null;
 
   const bodyBox = h('section', { class: 'body-card', 'aria-label': 'Silhouette du corps' });
   const panelBox = h('div', { 'aria-live': 'polite' });
@@ -119,6 +134,36 @@ async function renderIndex(root, initialZone) {
     const top = hasScores ? priorities(scores, 1)[0]?.id : null;
     const advised = mobs[0] && mobs[0].tools.every((t) => settings.equipment.includes(t)) && contextScore(mobs[0], settings.contexts) > 0 ? mobs[0].id : null;
 
+    if (filterZone !== zone.id) { filter = 'all'; filterZone = zone.id; }
+    const options = mobs.length >= FILTER_FROM ? filterOptions(mobs, settings) : [];
+    const listBox = h('div', { style: 'display:contents' }); // ses enfants se rangent comme ceux de la section
+    const row = (m) => {
+      const missing = m.tools.filter((t) => !settings.equipment.includes(t));
+      return h('li', { class: 'act-row' },
+        h('a', { class: 'act-main', href: `#/library/${zone.id}/${m.id}` },
+          h('span', { class: 'zone-name' }, m.name),
+          coversLine(duration(m), m.tools),
+          (m.id === advised || missing.length || m.kind !== 'mobilize')
+            ? h('span', { class: 'badges' },
+                m.id === advised ? h('span', { class: 'badge accent' }, 'Conseillée pour toi') : null,
+                m.kind !== 'mobilize' ? h('span', { class: 'badge' }, KINDS[m.kind]) : null,
+                missing.length ? h('span', { class: 'badge' }, 'Matériel à trouver') : null)
+            : null,
+        ),
+        h('a', { class: 'play-btn', href: `#/session/mob/${m.id}`, 'aria-label': `Faire maintenant : ${m.name}` }, icon('play', 18)),
+      );
+    };
+    function paintList() {
+      const keep = options.find((o) => o.id === filter)?.keep ?? (() => true);
+      const shown = mobs.filter(keep);
+      const count = `${shown.length} fiche${shown.length > 1 ? 's' : ''}`;
+      listBox.replaceChildren(
+        h('h3', { class: 'section-label' }, shown.length === mobs.length ? count : `${count} sur ${mobs.length}`),
+        shown.length ? h('ul', { class: 'list' }, shown.map(row)) : h('p', { class: 'empty' }, 'Aucune fiche avec ce filtre.'),
+      );
+    }
+    paintList();
+
     panelBox.append(
       h('section', { class: 'zone-panel', 'aria-labelledby': 'zp-t' },
         h('div', { class: 'zone-panel-head' },
@@ -136,22 +181,13 @@ async function renderIndex(root, initialZone) {
           : null,
         h('a', { class: 'btn', href: `#/pain/${zone.id}` }, 'J\'ai mal ici'),
         w ? h('p', { class: 'hint' }, `Côté ${w === 'l' ? 'gauche' : 'droit'} plus raide d'après ton bilan : la séance lui donne 30 s de plus.`) : null,
-        h('h3', { class: 'section-label' }, `${mobs.length} fiche${mobs.length > 1 ? 's' : ''}`),
-        h('ul', { class: 'list' }, mobs.map((m) => {
-          const missing = m.tools.filter((t) => !settings.equipment.includes(t));
-          return h('li', { class: 'act-row' },
-            h('a', { class: 'act-main', href: `#/library/${zone.id}/${m.id}` },
-              h('span', { class: 'zone-name' }, m.name),
-              coversLine(duration(m), m.tools),
-              (m.id === advised || missing.length)
-                ? h('span', { class: 'badges' },
-                    m.id === advised ? h('span', { class: 'badge accent' }, 'Conseillée pour toi') : null,
-                    missing.length ? h('span', { class: 'badge' }, 'Matériel à trouver') : null)
-                : null,
-            ),
-            h('a', { class: 'play-btn', href: `#/session/mob/${m.id}`, 'aria-label': `Faire maintenant : ${m.name}` }, icon('play', 18)),
-          );
-        })),
+        options.length > 2
+          ? chipGroup({
+              options, selected: [filter], multi: false, label: 'Filtrer les fiches', className: 'chips scroll', itemClass: 'chip quiet',
+              render: (o) => o.label, onChange: ([id]) => { filter = id; paintList(); },
+            })
+          : null,
+        listBox,
       ),
     );
   }
@@ -244,7 +280,7 @@ async function renderMob(root, m) {
   root.append(...[
     h('header', { class: 'page-head' },
       backLink(`#/library/${m.zone}`, zone.name),
-      h('span', { class: 'eyebrow' }, `Zone ${zone.id}`),
+      h('span', { class: 'eyebrow' }, m.kind === 'mobilize' ? `Zone ${zone.id}` : `Zone ${zone.id} · ${KINDS[m.kind]}`),
       h('h1', { class: 'page-title sm' }, m.name),
       h('p', { class: 'lead' }, m.summary),
     ),

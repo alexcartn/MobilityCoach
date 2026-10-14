@@ -2,7 +2,7 @@
 // Le bloc stamp est réécrit par `node tools/stamp.mjs` : ne pas l'éditer à la main.
 
 // <stamp>
-const VERSION = 'e101383b0c';
+const VERSION = 'e97b6b14d5';
 const ASSETS = [
   "./",
   "css/app.css",

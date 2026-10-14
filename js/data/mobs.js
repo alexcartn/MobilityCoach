@@ -498,8 +498,16 @@ const CORE = [
   },
 ];
 
+// Le type d'une fiche : les fiches du livre sont des mobilisations ; viennent s'y ajouter des étirements et des activations
+// (réveil avant l'effort). Sans `kind`, une fiche est une mobilisation.
+export const KINDS = {
+  mobilize: 'Mobilisation',
+  stretch: 'Étirement',
+  activate: 'Activation',
+};
+
 // Liste complète : fiches du tronc et de la hanche (ici), puis haut du corps et jambes.
-export const MOBS = [...CORE, ...UPPER, ...LOWER, ...HIPS, ...LOWERLEG, ...SHOULDERS, ...REST];
+export const MOBS = [...CORE, ...UPPER, ...LOWER, ...HIPS, ...LOWERLEG, ...SHOULDERS, ...REST].map((m) => ({ kind: 'mobilize', ...m }));
 
 export const zoneMobs = (zoneId) => MOBS.filter((m) => m.zone === zoneId);
 export const getMob = (id) => MOBS.find((m) => m.id === id);
