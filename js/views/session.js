@@ -20,7 +20,10 @@ const SIDE_LABELS = ['Côté gauche', 'Côté droit'];
 // #/session/pain/10 : « J'ai mal ici » (zone, amont, aval) ; #/session/protocol/wake : une séance prête (js/data/protocols.js).
 // Ces séances ne touchent pas à la séance du jour.
 // Un « /library » en fin d'adresse : retour à la zone à la fin.
-const ROLE_TEXT = { center: 'sur la douleur', up: 'amont', down: 'aval' };
+// L'écran tient dans la fenêtre : minuteur en haut, schéma au milieu, barre d'action fixe en bas (Démarrer toujours sous le pouce).
+// La technique, le gainage, le son et la vibration sont dans une fenêtre « Technique ». Chaque fiche démarre quand tu appuies
+// sur « Démarrer » : pas de compte à rebours de mise en place ; seul le changement de côté (5 s) s'enchaîne seul.
+const ROLE_TEXT = { center: 'Sur la douleur', up: 'Amont', down: 'Aval' };
 
 export async function render(root, params = []) {
   const [settings, assessments] = await Promise.all([loadSettings(), loadAssessments()]);
@@ -46,6 +49,7 @@ export async function render(root, params = []) {
   const weak = weakSides(assessments.at(-1)?.merged ?? {});
   const steps = stepsFor(routine.items, weak);
   let total = steps.reduce((n, s) => n + s.seconds, 0);
+  root.classList.add('has-bar');
 
   // Test rapide avant/après sur la zone de la première fiche (note de 1 à 5, facultative).
   const testZone = getMob(routine.items[0].id).zone;
@@ -56,6 +60,7 @@ export async function render(root, params = []) {
   let running = false;
   let started = false;
   let finished = false;
+  let ready = true; // une fiche qui commence attend ton « Démarrer »
   let endAt = 0;
   let left = steps[0].seconds * 1000;
   let lastShown = null;
@@ -81,43 +86,49 @@ export async function render(root, params = []) {
   let wake = null;
   const acquireWake = async () => { try { wake = await navigator.wakeLock?.request('screen'); } catch { wake = null; } };
   const releaseWake = () => { wake?.release?.().catch(() => {}); wake = null; };
-  const onVisible = () => { if (!document.hidden && running) acquireWake(); };
+  const onVisible = () => { if (!document.hidden && started && !finished) acquireWake(); };
   document.addEventListener('visibilitychange', onVisible);
 
   // --- Interface --------------------------------------------------------------------
-  const kicker = h('p', { class: 'kicker' });
-  const title = h('h1', { class: 'session-title' });
-  const timer = h('div', { class: 'timer', 'aria-live': 'off' });
+  const closeBtn = h('button', { type: 'button', class: 'round-btn', 'aria-label': 'Arrêter la séance' }, icon('close'));
+  const infoBtn = h('button', { type: 'button', class: 'round-btn', 'aria-label': 'Technique et réglages' }, icon('info'));
+  const counter = h('b');
+  const remain = h('span');
+  const segs = h('div', { class: 'segs', 'aria-hidden': 'true', style: `grid-template-columns: repeat(${routine.items.length}, minmax(0, 1fr))` },
+    routine.items.map(() => h('span')));
+  const status = h('p', { class: 's-status', role: 'status' });
+  const timer = h('div', { class: 'timer', 'aria-hidden': 'true' });
   const barFill = h('span');
-  const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-label': 'Avancement de la séance' }, barFill);
-  const counter = h('p', { class: 'counter-line' });
-  const figure = h('div', { class: 'session-fig' });
-  let fig = null; // le schéma de la fiche en cours : il s'anime tant que le minuteur tourne sur un temps de travail
-  const cue = h('p', { class: 'cue' });
-  const technique = h('div');
-  const mainBtn = h('button', { type: 'button', class: 'btn primary big' }, 'Démarrer');
-  const plusBtn = h('button', { type: 'button', class: 'btn big' }, '+30 s');
-  const skipBtn = h('button', { type: 'button', class: 'btn big' }, 'Passer');
-  const stopBtn = h('button', { type: 'button', class: 'btn danger' }, 'Arrêter');
-  const view = h('div', { class: 'session' });
-  const prefs = h('div', { class: 'chips center' });
+  const bar = h('div', { class: 'bar', role: 'progressbar', 'aria-label': 'Avancement de la position' }, barFill);
+  const title = h('h1', { class: 's-title' });
+  const tags = h('div', { class: 'badges s-tags' });
+  const figure = h('div', { class: 's-fig' });
+  let fig = null; // le schéma de la fiche en cours : il s'anime en permanence
+  const cue = h('p', { class: 's-cue' });
+  const techBtn = h('button', { type: 'button', class: 'btn ghost-link s-tech' }, 'Voir la technique');
   const testBox = h('div');
+  const prefs = h('div', { class: 'chips' });
+  const sheetBody = h('div', { class: 'sheet-body' });
+  const sheet = h('dialog', { class: 'sheet', 'aria-labelledby': 'sh-t' }, sheetBody);
+  sheet.addEventListener('click', (e) => { if (e.target === sheet) sheet.close(); }); // un appui sur le fond ferme
+  const mainBtn = h('button', { type: 'button', class: 'btn primary big s-go' }, 'Démarrer');
+  const plusBtn = h('button', { type: 'button', class: 'btn' }, '+30 s');
+  const skipBtn = h('button', { type: 'button', class: 'btn' }, 'Passer');
+  const view = h('div', { class: 'session live' });
 
   function scale(current, onPick, label) {
-    return h('div', { class: 'scale', role: 'group', 'aria-label': label },
+    return h('div', { class: 'scale compact', role: 'group', 'aria-label': label },
       [1, 2, 3, 4, 5].map((v) => h('button', { type: 'button', 'aria-pressed': String(current === v), onClick: () => onPick(v) }, String(v))));
   }
 
-  // Test avant : visible tant que la séance n'a pas démarré.
+  // Test avant : une ligne, tant que la séance n'a pas démarré.
   function paintBefore() {
     testBox.replaceChildren();
     if (started || !quickTest) return;
     testBox.append(
-      h('section', { class: 'card test-card', 'aria-labelledby': 'tb-t' },
-        h('div', { class: 'head' }, h('h2', { id: 'tb-t' }, `Avant : ${quickTest.title}`), h('span', { class: 'hint' }, 'Facultatif')),
-        h('p', { class: 'small', style: 'color:var(--text-2)' }, quickTest.intro),
+      h('section', { class: 's-test', 'aria-label': `Avant : ${quickTest.title}` },
+        h('div', { class: 'head' }, h('b', null, `Avant : ${quickTest.title}`), h('span', { class: 'hint' }, '1 limité · 5 facile · facultatif')),
         scale(before, (v) => { before = v; paintBefore(); }, 'Note de la position, de 1 à 5'),
-        h('div', { class: 'scale-labels' }, h('span', null, 'Très limité'), h('span', null, 'Facile')),
       ),
     );
   }
@@ -132,54 +143,59 @@ export async function render(root, params = []) {
     );
   }
 
+  // La fenêtre « Technique » : les étapes, la mise en garde, le gainage, le son et la vibration.
+  function paintSheet(m) {
+    sheetBody.replaceChildren(...[
+      h('div', { class: 'sheet-head' },
+        h('h2', { id: 'sh-t' }, m.name),
+        h('button', { type: 'button', class: 'round-btn', 'aria-label': 'Fermer', onClick: () => sheet.close() }, icon('close'))),
+      h('section', { class: 'section', style: 'gap:var(--space-xs)' },
+        h('h3', { class: 'section-label' }, 'Technique'),
+        h('ol', { class: 'step-list' }, m.steps.map((t) => h('li', null, h('span', null, t))))),
+      m.caution ? h('p', { class: 'callout warn' }, icon('warn'), h('span', null, m.caution)) : null,
+      h('details', { class: 'sheet-fold' },
+        h('summary', null, h('span', null, BRACE.title), icon('chevronDown', 20, 'chev')),
+        h('p', { class: 'hint' }, BRACE.intro),
+        h('ol', null, BRACE.steps.map((b) => h('li', null, h('b', null, `${b.name} : `), b.text)))),
+      h('section', { class: 'section', style: 'gap:var(--space-xs)' },
+        h('h3', { class: 'section-label' }, 'Pendant la séance'),
+        h('p', { class: 'hint' }, 'Visage détendu, respiration calme. Inconfort oui, douleur vive non. Tant que ça s\'améliore, tu peux rester plus longtemps : +30 s.'),
+        prefs),
+    ].filter(Boolean));
+  }
+
   function paintStep() {
     const st = steps[i];
     const m = getMob(st.id);
     const sideLabel = m.perSide ? SIDE_LABELS[st.side] : '';
-    const bonus = m.perSide && ((weak[m.zone] === 'l' && st.side === 0) || (weak[m.zone] === 'r' && st.side === 1)) ? ' · +30 s, côté plus raide' : '';
-    kicker.textContent = !started ? 'Prêt ?' : st.kind === 'prep' ? st.label : ((sideLabel + bonus) || 'En cours');
+    const role = routine.items[st.mobIndex].role;
     title.textContent = m.name;
+    tags.replaceChildren(...[
+      sideLabel && h('span', { class: 'badge accent' }, sideLabel),
+      st.bonus ? h('span', { class: 'badge' }, `+${st.bonus} s · côté plus raide`) : null,
+      role ? h('span', { class: 'badge' }, ROLE_TEXT[role]) : null,
+    ].filter(Boolean));
     fig?.destroy();
     fig = mountFigure(figure, m, { facing: st.side === 1 ? -1 : 1, label: m.name });
-    cue.textContent = st.kind === 'prep'
-      ? `${sideLabel ? sideLabel + ' : ' : ''}${m.cue}`
-      : m.cue;
-    technique.replaceChildren(
-      h('div', { class: 'list acc flat' },
-        h('details', null,
-          h('summary', null,
-            h('span', { class: 'acc-title' }, 'Voir la technique'),
-            icon('chevronDown', 20, 'chev'),
-          ),
-          h('div', { class: 'acc-body' },
-            h('ol', null, m.steps.map((t) => h('li', null, t))),
-            m.caution && h('p', { class: 'note' }, m.caution),
-          ),
-        ),
-        h('details', null,
-          h('summary', null,
-            h('span', { class: 'acc-title' }, BRACE.title),
-            icon('chevronDown', 20, 'chev'),
-          ),
-          h('div', { class: 'acc-body' },
-            h('p', null, BRACE.intro),
-            h('ol', null, BRACE.steps.map((b) => h('li', null, h('b', null, `${b.name} : `), b.text))),
-          ),
-        ),
-      ),
-    );
-    const role = routine.items[st.mobIndex].role;
-    counter.textContent = `Fiche ${st.mobIndex + 1} sur ${routine.items.length}${role ? ` · ${ROLE_TEXT[role]}` : ''}`;
+    cue.textContent = m.cue;
+    counter.textContent = `Fiche ${st.mobIndex + 1} sur ${routine.items.length}`;
+    [...segs.children].forEach((seg, n) => { seg.className = n < st.mobIndex ? 'done' : n === st.mobIndex ? 'cur' : ''; });
+    paintSheet(m);
   }
 
   function paintTime() {
-    const secs = Math.ceil(left / 1000);
-    timer.textContent = mmss(secs);
-    const before = steps.slice(0, i).reduce((n, s) => n + s.seconds * 1000, 0);
-    const done = before + steps[i].seconds * 1000 - left;
-    barFill.style.transform = `scaleX(${Math.min(1, done / (total * 1000))})`;
-    bar.setAttribute('aria-valuenow', String(Math.round((done / (total * 1000)) * 100)));
-    mainBtn.textContent = !started ? 'Démarrer' : running ? 'Pause' : 'Reprendre';
+    const st = steps[i];
+    const blockMs = st.seconds * 1000;
+    timer.textContent = mmss(Math.ceil(left / 1000));
+    barFill.style.transform = `scaleX(${Math.min(1, Math.max(0, 1 - left / blockMs))})`;
+    const doneMs = steps.slice(0, i).reduce((n, x) => n + x.seconds * 1000, 0) + blockMs - left;
+    remain.textContent = `reste ${Math.max(1, Math.ceil((total * 1000 - doneMs) / 60000))} min`;
+    const state = ready ? 'ready' : st.kind === 'prep' ? 'switch' : running ? 'run' : 'pause';
+    status.dataset.state = state;
+    status.textContent = { ready: started ? 'Fiche suivante : prêt ?' : 'Prêt ?', switch: `Change de côté : ${SIDE_LABELS[st.side].toLowerCase()}`, run: 'En cours', pause: 'En pause' }[state];
+    mainBtn.textContent = ready ? 'Démarrer' : running ? 'Pause' : 'Reprendre';
+    skipBtn.textContent = i === steps.length - 1 ? 'Terminer' : 'Passer';
+    techBtn.hidden = !ready; // avant de démarrer, on peut relire la technique ; en cours, seul le minuteur compte
   }
 
   // --- Logique du minuteur ------------------------------------------------------------
@@ -192,7 +208,9 @@ export async function render(root, params = []) {
   function go(n, signal = true) {
     i = n;
     left = steps[n].seconds * 1000;
-    if (running) endAt = Date.now() + left;
+    ready = steps[n].kind === 'work' && steps[n].side === 0; // une nouvelle fiche attend ton « Démarrer »
+    if (ready) running = false;
+    else if (running) endAt = Date.now() + left;
     lastShown = null;
     paintStep();
     paintTime();
@@ -222,17 +240,17 @@ export async function render(root, params = []) {
 
   function start() {
     started = true;
-    paintBefore();
+    ready = false;
     running = true;
     endAt = Date.now() + left;
     acquireWake();
     beep(988, 200);
-    paintStep();
+    paintBefore();
     paintTime();
   }
 
   mainBtn.addEventListener('click', () => {
-    if (!started) return start();
+    if (ready) return start();
     if (running) {
       left = Math.max(0, endAt - Date.now());
       running = false;
@@ -254,15 +272,25 @@ export async function render(root, params = []) {
 
   skipBtn.addEventListener('click', () => {
     if (!started) { started = true; paintBefore(); }
+    if (ready) { // fiche pas encore commencée : on la saute en entier
+      const next = steps.findIndex((x) => x.mobIndex > steps[i].mobIndex);
+      if (next < 0) return finish(false);
+      return go(next);
+    }
     advance();
   });
 
-  stopBtn.addEventListener('click', () => {
-    if (!started || confirm('Arrêter la séance ? Le temps déjà travaillé sera enregistré.')) {
+  closeBtn.addEventListener('click', () => {
+    if (!started) { location.hash = backHref; return; }
+    if (confirm('Arrêter la séance ? Le temps déjà travaillé sera enregistré.')) {
       recordWork();
       finish(true);
     }
   });
+
+  const openSheet = () => (sheet.showModal ? sheet.showModal() : sheet.setAttribute('open', ''));
+  infoBtn.addEventListener('click', openSheet);
+  techBtn.addEventListener('click', openSheet);
 
   async function finish(stopped) {
     if (finished) return;
@@ -331,28 +359,23 @@ export async function render(root, params = []) {
     fig?.destroy();
     clearInterval(tick);
     releaseWake();
+    if (sheet.open) sheet.close();
     document.removeEventListener('visibilitychange', onVisible);
     audio?.close?.().catch(() => {});
   };
 
   view.append(
-    h('section', { class: 'hero session-hero', 'aria-label': 'Minuteur' },
-      kicker, title, timer, bar, counter,
-    ),
-    figure,
-    cue,
-    h('p', { class: 'hint reminder' }, 'Visage détendu, respiration calme. Inconfort oui, douleur vive non.'),
-    testBox,
-    h('div', { class: 'btn-row stretch' }, mainBtn, plusBtn, skipBtn),
-    h('p', { class: 'hint reminder' }, 'Tant que ça s\'améliore, tu peux rester plus longtemps, jusqu\'à 10 minutes.'),
-    prefs,
-    h('div', { class: 'btn-row center' }, stopBtn),
-    technique,
+    h('div', { class: 's-top' },
+      closeBtn,
+      h('div', { class: 's-prog' }, h('div', { class: 'meta-line' }, counter, remain), segs),
+      infoBtn),
+    h('section', { class: 'hero s-timer', 'aria-label': 'Minuteur' }, status, timer, bar),
+    h('section', { class: 's-stage' }, title, tags, figure, cue, techBtn, testBox),
+    sheet,
   );
-  root.append(view);
+  root.append(view, h('div', { class: 'bottom-bar session-bar' }, h('div', null, plusBtn, mainBtn, skipBtn)));
   paintPrefs();
   paintBefore();
   paintStep();
   paintTime();
 }
-
